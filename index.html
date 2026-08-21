@@ -1,791 +1,1608 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Report Reconciler — recon://diff</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<style>
-  :root,
-  html[data-theme="dark"] {
-    --bg:#0B0D12; --surface:#141821; --surface-hi:#1A1F2B; --surface-alt:#10131A;
-    --border:#232936; --border-strong:#2E3543;
-    --text:#EDEFF3; --muted:#9AA3B2; --dim:#5B6472; --faint:#3A4150;
-    --brand:#7C8DFF; --on-brand:#0B0D12; --brand-grad:#5566DD;
-    --green:#3FB984; --green-dim:#123329;
-    --amber:#E0A32E; --amber-dim:#382C10;
-    --rose:#E06C75; --rose-dim:#3A1D22;
-    --sky:#56A0E8; --sky-dim:#132B44;
-    --shadow:0 1px 2px rgba(0,0,0,0.4);
-    --knob-shadow:0 1px 2px rgba(0,0,0,0.4);
-  }
-  html[data-theme="light"] {
-    --bg:#F5F6F9; --surface:#FFFFFF; --surface-hi:#EEF0F4; --surface-alt:#F2F4F7;
-    --border:#E3E6EC; --border-strong:#CBD1DB;
-    --text:#161B24; --muted:#5A6472; --dim:#8A93A3; --faint:#B6BDC9;
-    --brand:#5865F2; --on-brand:#FFFFFF; --brand-grad:#7C5BFF;
-    --green:#12875A; --green-dim:#E1F3EB;
-    --amber:#B0770C; --amber-dim:#FAEFD6;
-    --rose:#CE3F4C; --rose-dim:#FCE6E8;
-    --sky:#2C79C5; --sky-dim:#E3EFFB;
-    --shadow:0 1px 2px rgba(16,24,40,0.06);
-    --knob-shadow:0 1px 2px rgba(16,24,40,0.2);
-  }
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta name="color-scheme" content="dark light" />
+	<title>Recon — Spreadsheet Difference Inspector</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+	<style>
+		:root {
+			--sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+			--mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+			--radius-xs: 7px;
+			--radius-sm: 10px;
+			--radius: 14px;
+			--radius-lg: 20px;
+			--shadow-sm: 0 1px 2px rgba(0, 0, 0, .2);
+			--shadow: 0 18px 50px rgba(0, 0, 0, .22);
+		}
 
-  * { box-sizing: border-box; }
-  html, body { margin:0; padding:0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-    transition: background .2s ease, color .2s ease;
-    min-height: 100vh;
-  }
-  .mono { font-family:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+		html[data-theme="dark"] {
+			--bg: #090b10;
+			--bg-elevated: #0d1017;
+			--surface: #11151e;
+			--surface-2: #171c27;
+			--surface-3: #1c2230;
+			--surface-hover: #202736;
+			--border: #252c3a;
+			--border-strong: #343d4f;
+			--text: #f3f5f8;
+			--text-soft: #d5dae3;
+			--muted: #929cab;
+			--dim: #667183;
+			--faint: #454e5e;
+			--brand: #8a96ff;
+			--brand-2: #b66cff;
+			--brand-soft: rgba(138, 150, 255, .13);
+			--green: #48c78e;
+			--green-soft: rgba(72, 199, 142, .12);
+			--amber: #f2b84b;
+			--amber-soft: rgba(242, 184, 75, .12);
+			--rose: #f47783;
+			--rose-soft: rgba(244, 119, 131, .12);
+			--sky: #5bb7f9;
+			--sky-soft: rgba(91, 183, 249, .12);
+			--grid: rgba(255, 255, 255, .025);
+			--scrim: rgba(5, 7, 11, .76);
+		}
 
-  .wrap { max-width:1080px; margin:0 auto; padding:28px 20px; }
+		html[data-theme="light"] {
+			--bg: #f4f6fa;
+			--bg-elevated: #eef1f6;
+			--surface: #ffffff;
+			--surface-2: #f6f7fa;
+			--surface-3: #eceff4;
+			--surface-hover: #e8ecf3;
+			--border: #dfe3eb;
+			--border-strong: #c8cfda;
+			--text: #171b24;
+			--text-soft: #313846;
+			--muted: #667080;
+			--dim: #8892a2;
+			--faint: #aeb6c3;
+			--brand: #5d68e8;
+			--brand-2: #8e50dd;
+			--brand-soft: rgba(93, 104, 232, .10);
+			--green: #16865b;
+			--green-soft: rgba(22, 134, 91, .10);
+			--amber: #a96f08;
+			--amber-soft: rgba(169, 111, 8, .10);
+			--rose: #cc4653;
+			--rose-soft: rgba(204, 70, 83, .10);
+			--sky: #287ec0;
+			--sky-soft: rgba(40, 126, 192, .10);
+			--grid: rgba(20, 29, 45, .035);
+			--scrim: rgba(239, 242, 247, .78);
+			--shadow-sm: 0 1px 2px rgba(31, 41, 55, .07);
+			--shadow: 0 18px 50px rgba(31, 41, 55, .11);
+		}
 
-  /* header */
-  .header { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:26px; }
-  .brand-row { display:flex; align-items:center; gap:11px; }
-  .logo {
-    width:34px; height:34px; border-radius:9px;
-    background: linear-gradient(135deg, var(--brand), var(--brand-grad));
-    display:flex; align-items:center; justify-content:center;
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 27%, transparent);
-  }
-  .logo svg { stroke: var(--on-brand); }
-  .title { font-family:'JetBrains Mono', monospace; font-size:18px; font-weight:700; letter-spacing:-.01em; line-height:1; }
-  .subtitle { font-size:12px; color:var(--dim); font-family:'JetBrains Mono', monospace; margin-top:3px; }
-  .lede { font-size:13px; color:var(--muted); margin-top:12px; max-width:560px; line-height:1.55; }
-  .header-actions { display:flex; gap:10px; }
+		* { box-sizing: border-box; }
+		html { scroll-behavior: smooth; }
+		body {
+			margin: 0;
+			min-width: 320px;
+			min-height: 100vh;
+			background:
+				radial-gradient(circle at 12% -8%, color-mix(in srgb, var(--brand) 13%, transparent), transparent 30rem),
+				radial-gradient(circle at 88% 2%, color-mix(in srgb, var(--brand-2) 10%, transparent), transparent 28rem),
+				var(--bg);
+			color: var(--text);
+			font-family: var(--sans);
+			font-size: 14px;
+			line-height: 1.5;
+			transition: background-color .2s ease, color .2s ease;
+		}
 
-  /* buttons */
-  .btn {
-    display:inline-flex; align-items:center; gap:7px;
-    background:var(--surface); border:1px solid var(--border); border-radius:8px;
-    color:var(--muted); font-family:inherit; font-size:12.5px; padding:8px 13px; cursor:pointer;
-    transition: background .12s ease, border-color .12s ease, color .12s ease;
-  }
-  .btn:hover:not(:disabled) { border-color:var(--border-strong); color:var(--text); }
-  .btn:disabled { color:var(--faint); cursor:not-allowed; }
+		body::before {
+			content: "";
+			position: fixed;
+			inset: 0;
+			pointer-events: none;
+			background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+			background-size: 34px 34px;
+			mask-image: linear-gradient(to bottom, black, transparent 72%);
+			z-index: -1;
+		}
 
-  /* upload */
-  .uploads { display:flex; gap:14px; flex-wrap:wrap; align-items:stretch; margin-bottom:22px; }
-  .swap-icon { display:flex; align-items:center; justify-content:center; color:var(--faint); }
-  .slot {
-    flex:1; min-width:250px; background:var(--surface);
-    border:1.5px dashed var(--border); border-radius:12px; padding:22px;
-    box-shadow:var(--shadow);
-    transition: border-color .15s ease, background .15s ease;
-  }
-  .slot.drag { background:var(--surface-hi); }
-  .slot.drag.a { border-color:var(--brand); }
-  .slot.drag.b { border-color:var(--sky); }
-  .slot-label { display:flex; align-items:center; gap:9px; margin-bottom:16px; }
-  .slot-label .dot { width:9px; height:9px; border-radius:3px; }
-  .slot-label span { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:600; }
-  .drop-inner { cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:12px; padding:24px 10px; }
-  .drop-badge { width:46px; height:46px; border-radius:12px; background:var(--surface-alt); display:flex; align-items:center; justify-content:center; }
-  .drop-text { font-size:13px; color:var(--muted); text-align:center; line-height:1.5; }
-  .drop-text small { color:var(--dim); }
-  .file-head { display:flex; align-items:center; gap:9px; margin-bottom:12px; }
-  .file-name { font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--text); word-break:break-all; }
-  .file-stats { display:flex; gap:20px; font-family:'JetBrains Mono', monospace; font-size:13px; }
-  .file-stats .k { color:var(--dim); }
-  .file-stats .v { color:var(--text); font-weight:600; }
-  .replace-link { display:inline-block; margin-top:14px; font-size:12px; cursor:pointer; transition:opacity .12s ease; }
-  .replace-link:hover { opacity:.7; }
-  select, input[type="text"] {
-    background:var(--surface-alt); border:1px solid var(--border); border-radius:7px;
-    color:var(--text); font-family:'JetBrains Mono', monospace; font-size:12.5px; padding:7px 10px;
-  }
-  select:focus, input[type="text"]:focus {
-    outline:none; border-color:var(--brand);
-    box-shadow:0 0 0 3px color-mix(in srgb, var(--brand) 20%, transparent);
-  }
+		button, input, select { font: inherit; }
+		button { color: inherit; }
+		button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+			outline: 2px solid color-mix(in srgb, var(--brand) 80%, white);
+			outline-offset: 2px;
+		}
 
-  .callout {
-    border:1px solid var(--border); background:var(--surface); border-radius:10px; padding:18px;
-    font-size:13px; color:var(--muted); display:flex; gap:11px; align-items:flex-start; line-height:1.55;
-    box-shadow:var(--shadow);
-  }
-  .callout svg { flex-shrink:0; margin-top:1px; stroke:var(--dim); }
-  .callout.error { border-color:color-mix(in srgb, var(--rose) 35%, transparent); background:var(--rose-dim); color:var(--rose); }
-  .callout.error svg { stroke:var(--rose); }
+		::selection { background: color-mix(in srgb, var(--brand) 35%, transparent); }
+		.hidden { display: none !important; }
+		.mono { font-family: var(--mono); }
+		.muted { color: var(--muted); }
+		.dim { color: var(--dim); }
+		.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* config bar */
-  .config {
-    background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 18px;
-    margin-bottom:22px; display:flex; gap:22px; flex-wrap:wrap; align-items:center; box-shadow:var(--shadow);
-  }
-  .config-label { display:flex; align-items:center; gap:8px; }
-  .config-label span { font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); font-weight:600; }
-  .config-label svg { stroke:var(--dim); }
-  .vsep { width:1px; align-self:stretch; background:var(--border); }
+		.app-shell { width: min(1240px, calc(100% - 36px)); margin: 0 auto; padding: 24px 0 42px; }
+		.topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 46px; }
+		.brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+		.brand-mark {
+			width: 38px;
+			height: 38px;
+			border-radius: 11px;
+			display: grid;
+			place-items: center;
+			background: linear-gradient(135deg, var(--brand), var(--brand-2));
+			box-shadow: 0 8px 24px color-mix(in srgb, var(--brand) 20%, transparent), inset 0 1px 0 rgba(255, 255, 255, .26);
+			color: white;
+			flex: 0 0 auto;
+		}
+		.brand-name { font: 700 15px/1.1 var(--mono); letter-spacing: -.025em; }
+		.brand-path { color: var(--dim); font: 500 10.5px/1.2 var(--mono); margin-top: 4px; }
+		.top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 
-  .segmented { display:inline-flex; background:var(--surface-alt); border:1px solid var(--border); border-radius:8px; padding:3px; gap:3px; }
-  .seg {
-    display:flex; align-items:center; gap:6px; background:transparent; color:var(--muted);
-    border:none; border-radius:6px; font-family:inherit; font-size:12.5px; font-weight:500; padding:6px 12px; cursor:pointer;
-    transition: background .12s ease, color .12s ease;
-  }
-  .seg.active { background:var(--brand); color:var(--on-brand); font-weight:600; }
+		.btn, .icon-btn {
+			border: 1px solid var(--border);
+			background: color-mix(in srgb, var(--surface) 92%, transparent);
+			box-shadow: var(--shadow-sm);
+			border-radius: 9px;
+			min-height: 36px;
+			padding: 7px 12px;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 7px;
+			font-size: 12.5px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: transform .12s ease, background .12s ease, border-color .12s ease, color .12s ease;
+		}
+		.btn:hover:not(:disabled), .icon-btn:hover:not(:disabled) { transform: translateY(-1px); background: var(--surface-2); border-color: var(--border-strong); }
+		.btn:disabled, .icon-btn:disabled { opacity: .42; cursor: not-allowed; }
+		.btn.primary { background: var(--brand); border-color: var(--brand); color: white; }
+		.btn.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--brand) 88%, white); }
+		.btn.ghost { box-shadow: none; background: transparent; }
+		.btn.danger { color: var(--rose); }
+		.btn.small { min-height: 31px; padding: 5px 9px; font-size: 11.5px; }
+		.icon-btn { width: 36px; padding: 0; }
 
-  .switch { display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none; }
-  .track { width:34px; height:19px; border-radius:20px; background:var(--border-strong); position:relative; transition:background .15s ease; flex-shrink:0; }
-  .track.on { background:var(--brand); }
-  .knob { position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:#fff; box-shadow:var(--knob-shadow); transition:left .15s ease; }
-  .track.on .knob { left:17px; }
-  .switch span.lbl { font-size:13px; color:var(--muted); }
+		.hero { max-width: 850px; margin: 0 auto 30px; text-align: center; }
+		.eyebrow {
+			display: inline-flex;
+			align-items: center;
+			gap: 7px;
+			padding: 5px 9px;
+			border: 1px solid color-mix(in srgb, var(--brand) 28%, var(--border));
+			background: var(--brand-soft);
+			border-radius: 999px;
+			color: var(--brand);
+			font: 600 10.5px/1 var(--mono);
+			letter-spacing: .05em;
+			text-transform: uppercase;
+			margin-bottom: 14px;
+		}
+		.hero h1 { margin: 0; font-size: clamp(30px, 5vw, 49px); line-height: 1.05; letter-spacing: -.048em; }
+		.hero h1 span { background: linear-gradient(105deg, var(--brand), var(--brand-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+		.hero p { max-width: 700px; margin: 16px auto 0; color: var(--muted); font-size: 15px; line-height: 1.7; }
 
-  .dupe-note { margin-bottom:18px; font-size:12.5px; color:var(--amber); display:flex; gap:8px; align-items:center; }
-  .dupe-note svg { stroke:var(--amber); }
+		.upload-grid { display: grid; grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr); align-items: stretch; gap: 10px; }
+		.file-slot {
+			min-height: 230px;
+			border: 1px dashed var(--border-strong);
+			border-radius: var(--radius-lg);
+			background: linear-gradient(145deg, color-mix(in srgb, var(--surface) 96%, transparent), color-mix(in srgb, var(--surface-2) 90%, transparent));
+			box-shadow: var(--shadow-sm);
+			position: relative;
+			overflow: hidden;
+			transition: transform .16s ease, border-color .16s ease, background .16s ease;
+		}
+		.file-slot::after { content: ""; position: absolute; inset: 0 0 auto; height: 2px; opacity: .9; }
+		.file-slot.a::after { background: linear-gradient(90deg, var(--brand), transparent 75%); }
+		.file-slot.b::after { background: linear-gradient(90deg, var(--sky), transparent 75%); }
+		.file-slot.dragging { transform: translateY(-2px); background: var(--surface-2); }
+		.file-slot.a.dragging { border-color: var(--brand); }
+		.file-slot.b.dragging { border-color: var(--sky); }
+		.slot-inner { height: 100%; padding: 20px; display: flex; flex-direction: column; }
+		.slot-label { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+		.slot-label-main { display: flex; align-items: center; gap: 8px; font: 700 10.5px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+		.slot-dot { width: 8px; height: 8px; border-radius: 3px; background: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }
+		.file-slot.b .slot-dot { background: var(--sky); box-shadow: 0 0 0 4px var(--sky-soft); }
+		.drop-target { flex: 1; min-height: 156px; display: grid; place-items: center; cursor: pointer; border-radius: var(--radius); }
+		.drop-content { text-align: center; color: var(--muted); }
+		.drop-icon { width: 48px; height: 48px; margin: 0 auto 13px; border-radius: 14px; display: grid; place-items: center; color: var(--brand); background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 18%, transparent); }
+		.file-slot.b .drop-icon { color: var(--sky); background: var(--sky-soft); border-color: color-mix(in srgb, var(--sky) 18%, transparent); }
+		.drop-title { color: var(--text-soft); font-weight: 650; font-size: 13px; }
+		.drop-sub { margin-top: 4px; font-size: 11.5px; color: var(--dim); }
+		.file-card { flex: 1; display: flex; flex-direction: column; }
+		.file-title { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+		.file-icon { width: 35px; height: 35px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 10px; background: var(--brand-soft); color: var(--brand); }
+		.file-slot.b .file-icon { color: var(--sky); background: var(--sky-soft); }
+		.file-name { font: 650 12.5px/1.35 var(--mono); color: var(--text); word-break: break-word; }
+		.file-meta { color: var(--dim); font: 500 10.5px/1.4 var(--mono); margin-top: 3px; }
+		.file-controls { display: grid; grid-template-columns: minmax(0, 1fr) 108px; gap: 10px; margin-top: auto; }
+		.field-label { display: block; color: var(--dim); font: 600 9.5px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; margin-bottom: 6px; }
+		.select, .input {
+			width: 100%;
+			min-height: 36px;
+			border-radius: 8px;
+			border: 1px solid var(--border);
+			background: var(--surface-2);
+			color: var(--text);
+			padding: 7px 10px;
+			font: 500 12px/1.25 var(--mono);
+		}
+		.input::placeholder { color: var(--faint); }
+		.file-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--border); }
+		.file-stats { display: flex; gap: 14px; color: var(--muted); font: 500 11px/1 var(--mono); }
+		.file-stats strong { color: var(--text); }
+		.text-action { border: 0; background: none; padding: 3px 0; color: var(--brand); font-size: 11.5px; font-weight: 650; cursor: pointer; }
+		.file-slot.b .text-action { color: var(--sky); }
+		.bridge { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; color: var(--faint); }
+		.bridge-line { width: 1px; height: 38px; background: linear-gradient(transparent, var(--border-strong), transparent); }
+		.bridge button { border: 1px solid var(--border); background: var(--surface); width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: var(--muted); box-shadow: var(--shadow-sm); }
+		.bridge button:hover:not(:disabled) { color: var(--text); border-color: var(--brand); }
+		.bridge button:disabled { opacity: .35; cursor: default; }
 
-  /* verdict */
-  .verdict {
-    display:flex; align-items:center; gap:16px; background:var(--surface);
-    border:1px solid var(--border); border-left-width:3px; border-radius:10px; padding:16px 20px;
-    margin-bottom:20px; box-shadow:var(--shadow);
-  }
-  .verdict .pct { font-family:'JetBrains Mono', monospace; font-size:34px; font-weight:700; line-height:1; min-width:78px; }
-  .verdict .vt { font-size:15px; font-weight:600; color:var(--text); }
-  .verdict .vd { font-size:12.5px; color:var(--muted); margin-top:3px; }
+		.privacy-strip { margin: 14px 0 30px; display: flex; justify-content: center; align-items: center; gap: 9px; color: var(--dim); font: 500 11px/1.4 var(--mono); }
+		.privacy-strip svg { color: var(--green); }
+		.notice { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius); padding: 13px 15px; display: flex; gap: 10px; align-items: flex-start; color: var(--muted); box-shadow: var(--shadow-sm); }
+		.notice.error { border-color: color-mix(in srgb, var(--rose) 38%, var(--border)); background: var(--rose-soft); color: var(--rose); margin-bottom: 15px; }
+		.notice.warn { border-color: color-mix(in srgb, var(--amber) 30%, var(--border)); background: var(--amber-soft); color: var(--amber); }
+		.notice.info { border-color: color-mix(in srgb, var(--sky) 28%, var(--border)); background: var(--sky-soft); color: var(--sky); }
+		.notice svg { flex: 0 0 auto; margin-top: 2px; }
 
-  /* stat grid */
-  .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:22px; }
-  .card {
-    background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 18px;
-    position:relative; overflow:hidden; box-shadow:var(--shadow);
-    transition: border-color .15s ease, transform .15s ease;
-  }
-  .card:hover { border-color:var(--border-strong); transform:translateY(-1px); }
-  .card .accent { position:absolute; top:0; left:0; width:100%; height:2px; opacity:.9; }
-  .card .clabel { font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
-  .card .cvalue { font-family:'JetBrains Mono', monospace; font-size:27px; font-weight:600; color:var(--text); line-height:1; letter-spacing:-.01em; }
-  .card .csub { font-size:11.5px; color:var(--dim); margin-top:6px; }
+		.workspace { animation: rise .28s ease both; }
+		@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+		.panel { border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 96%, transparent); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+		.config-panel { margin-bottom: 15px; overflow: visible; }
+		.config-main { padding: 15px 17px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+		.config-block { display: flex; align-items: center; gap: 10px; min-width: 0; }
+		.config-caption { color: var(--dim); font: 650 9.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+		.divider-v { width: 1px; align-self: stretch; min-height: 32px; background: var(--border); }
+		.segmented { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 9px; }
+		.segment { border: 0; background: transparent; color: var(--muted); border-radius: 6px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 650; cursor: pointer; }
+		.segment.active { color: white; background: var(--brand); box-shadow: 0 2px 7px color-mix(in srgb, var(--brand) 26%, transparent); }
+		.key-chips { display: flex; align-items: center; gap: 5px; min-width: 0; flex-wrap: wrap; }
+		.key-chip { max-width: 180px; padding: 5px 8px; border: 1px solid color-mix(in srgb, var(--brand) 25%, var(--border)); color: var(--brand); background: var(--brand-soft); border-radius: 7px; font: 600 11px/1.2 var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.config-spacer { flex: 1; }
+		.rules { border-top: 1px solid var(--border); }
+		.rules summary { list-style: none; cursor: pointer; padding: 11px 17px; display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 11.5px; font-weight: 600; }
+		.rules summary::-webkit-details-marker { display: none; }
+		.rules summary::after { content: "+"; color: var(--dim); font: 500 17px/1 var(--mono); }
+		.rules[open] summary::after { content: "−"; }
+		.rules-grid { border-top: 1px solid var(--border); background: var(--surface-2); padding: 15px 17px; display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 13px; }
+		.rule-item { min-width: 0; }
+		.toggle-row { min-height: 36px; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--text-soft); font-size: 12px; }
+		.toggle { width: 35px; height: 20px; padding: 2px; border: 0; border-radius: 999px; background: var(--border-strong); cursor: pointer; transition: background .15s ease; flex: 0 0 auto; }
+		.toggle::after { content: ""; display: block; width: 16px; height: 16px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgba(0, 0, 0, .28); transition: transform .15s ease; }
+		.toggle.on { background: var(--brand); }
+		.toggle.on::after { transform: translateX(15px); }
+		.rule-help { color: var(--dim); font-size: 10.5px; margin-top: 3px; }
 
-  /* proportion bar */
-  .propbar-wrap { margin-bottom:28px; }
-  .propbar { display:flex; height:12px; width:100%; overflow:hidden; border-radius:6px; background:var(--surface-alt); border:1px solid var(--border); }
-  .legend { display:flex; gap:20px; margin-top:10px; font-size:12px; color:var(--muted); flex-wrap:wrap; }
-  .legend .li { display:flex; align-items:center; gap:6px; }
-  .legend .sw { width:9px; height:9px; border-radius:2px; }
+		.summary-panel { padding: 20px; margin-bottom: 14px; position: relative; overflow: hidden; }
+		.summary-panel::before { content: ""; position: absolute; width: 300px; height: 300px; right: -145px; top: -180px; border-radius: 50%; background: color-mix(in srgb, var(--verdict-color, var(--brand)) 9%, transparent); filter: blur(1px); }
+		.summary-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 17px; align-items: center; position: relative; }
+		.score-ring { --score: 0; width: 82px; height: 82px; flex: 0 0 auto; display: grid; place-items: center; position: relative; border-radius: 50%; background: conic-gradient(var(--verdict-color) calc(var(--score) * 1%), var(--surface-3) 0); }
+		.score-ring::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--surface); }
+		.score-ring strong { position: relative; font: 700 20px/1 var(--mono); color: var(--verdict-color); letter-spacing: -.04em; }
+		.summary-copy h2 { margin: 0; font-size: 20px; letter-spacing: -.025em; }
+		.summary-copy p { margin: 5px 0 0; color: var(--muted); font-size: 12.5px; }
+		.summary-badges { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+		.tag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); font: 600 10px/1 var(--mono); }
+		.summary-actions { display: flex; align-items: center; gap: 7px; z-index: 2; }
+		.export-wrap { position: relative; }
+		.export-wrap[open] .export-menu { display: block; }
+		.export-wrap > summary { list-style: none; }
+		.export-wrap > summary::-webkit-details-marker { display: none; }
+		.export-menu { display: none; position: absolute; right: 0; top: calc(100% + 7px); z-index: 20; width: 210px; padding: 6px; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; box-shadow: var(--shadow); }
+		.export-menu button { width: 100%; border: 0; background: transparent; color: var(--text-soft); padding: 8px 9px; border-radius: 7px; text-align: left; cursor: pointer; font-size: 11.5px; display: flex; align-items: center; gap: 8px; }
+		.export-menu button:hover { background: var(--surface-2); }
 
-  /* tabs */
-  .tabs { display:flex; border-bottom:1px solid var(--border); margin-bottom:20px; flex-wrap:wrap; }
-  .tab {
-    background:transparent; border:none; border-bottom:2px solid transparent; color:var(--muted);
-    font-family:inherit; font-size:13.5px; font-weight:500; padding:11px 16px; cursor:pointer;
-    display:flex; align-items:center; gap:8px; margin-bottom:-1px;
-    transition:color .12s ease, border-color .12s ease;
-  }
-  .tab.active { color:var(--text); font-weight:600; }
-  .tab .badge { font-family:'JetBrains Mono', monospace; font-size:11px; background:var(--surface-alt); color:var(--dim); border-radius:5px; padding:1px 6px; }
+		.stat-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 9px; margin-top: 20px; position: relative; }
+		.stat { border: 1px solid var(--border); background: var(--surface-2); border-radius: 10px; padding: 12px; min-width: 0; }
+		.stat-label { color: var(--dim); font: 650 9px/1.2 var(--mono); letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.stat-value { margin-top: 7px; color: var(--stat-color, var(--text)); font: 700 21px/1 var(--mono); letter-spacing: -.035em; }
+		.stat-sub { margin-top: 5px; color: var(--dim); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.proportion { display: flex; height: 7px; border-radius: 999px; overflow: hidden; background: var(--surface-3); margin-top: 14px; position: relative; }
+		.legend { margin-top: 9px; display: flex; gap: 15px; flex-wrap: wrap; color: var(--dim); font-size: 10.5px; }
+		.legend span { display: inline-flex; align-items: center; gap: 6px; }
+		.legend i { width: 7px; height: 7px; border-radius: 2px; }
 
-  /* pills */
-  .pill {
-    display:inline-block; border-radius:6px; font-family:'JetBrains Mono', monospace; font-size:12px;
-    padding:4px 9px; margin:0 7px 7px 0; border:1px solid transparent;
-  }
-  .group-label { font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); margin-bottom:10px; font-weight:600; }
+		.insight-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+		.insight { padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; border-radius: 11px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 11.5px; }
+		.insight.warning { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 25%, var(--border)); background: var(--amber-soft); }
+		.insight.info { color: var(--sky); border-color: color-mix(in srgb, var(--sky) 22%, var(--border)); background: var(--sky-soft); }
+		.insight button { color: inherit; border: 0; background: none; padding: 0; margin-left: 4px; text-decoration: underline; cursor: pointer; font-weight: 700; }
 
-  /* tables */
-  .scroll { overflow:auto; }
-  .scroll::-webkit-scrollbar { width:10px; height:10px; }
-  .scroll::-webkit-scrollbar-thumb { background:var(--border-strong); border-radius:6px; }
-  .scroll::-webkit-scrollbar-track { background:transparent; }
-  table { width:100%; border-collapse:collapse; font-family:'JetBrains Mono', monospace; font-size:12.5px; }
-  thead tr { background:var(--surface-alt); position:sticky; top:0; }
-  th { text-align:left; padding:10px 14px; border-bottom:1px solid var(--border); color:var(--muted); font-weight:500; }
-  td { padding:9px 14px; color:var(--text); border-bottom:1px solid var(--border); }
-  tbody tr:hover { background:var(--surface-hi); }
-  .tbl-box { border:1px solid var(--border); border-radius:10px; max-height:440px; }
-  .more-note { padding:12px; font-size:12px; color:var(--dim); }
+		.tabs-shell { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
+		.tabs { display: flex; align-items: center; gap: 2px; padding: 0 10px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+		.tabs::-webkit-scrollbar { display: none; }
+		.tab { flex: 0 0 auto; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); padding: 14px 10px 12px; font-size: 11.5px; font-weight: 650; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+		.tab:hover { color: var(--text-soft); }
+		.tab.active { color: var(--text); border-bottom-color: var(--brand); }
+		.badge { min-width: 20px; padding: 2px 5px; border-radius: 5px; background: var(--surface-3); color: var(--dim); font: 650 9.5px/1.2 var(--mono); text-align: center; }
+		.tab.active .badge { background: var(--brand-soft); color: var(--brand); }
+		.tab-panel { padding: 17px; min-height: 260px; }
 
-  /* mismatch list */
-  .mm-toolbar { display:flex; gap:10px; margin-bottom:16px; align-items:center; flex-wrap:wrap; }
-  .search-box { position:relative; flex:1; min-width:220px; max-width:340px; }
-  .search-box svg { position:absolute; left:11px; top:10px; stroke:var(--dim); }
-  .search-box input { width:100%; padding:8px 11px 8px 32px; border-radius:8px; }
-  .mm-box { border:1px solid var(--border); border-radius:10px; max-height:480px; }
-  .mm-row { display:grid; grid-template-columns:34px 1fr; border-bottom:1px solid var(--border); font-family:'JetBrains Mono', monospace; font-size:12.5px; }
-  .mm-idx { background:var(--surface-alt); color:var(--faint); text-align:right; padding:10px 8px; border-right:1px solid var(--border); }
-  .mm-body { padding:10px 14px; }
-  .mm-key { color:var(--muted); margin-bottom:6px; }
-  .mm-key b { color:var(--brand); font-weight:400; }
-  .mm-a { display:flex; gap:7px; align-items:center; color:var(--rose); margin-bottom:2px; }
-  .mm-b { display:flex; gap:7px; align-items:center; color:var(--green); }
-  .empty-line { color:var(--dim); font-size:13px; font-family:'JetBrains Mono', monospace; display:flex; align-items:center; gap:8px; }
-  .empty-line svg { stroke:var(--green); }
+		.toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+		.search { position: relative; flex: 1 1 240px; max-width: 390px; }
+		.search svg { position: absolute; left: 11px; top: 10px; color: var(--dim); pointer-events: none; }
+		.search .input { padding-left: 32px; }
+		.toolbar .select { width: auto; min-width: 160px; }
+		.toolbar-spacer { flex: 1; }
+		.result-count { color: var(--dim); font: 500 10.5px/1 var(--mono); }
 
-  .footer { margin-top:40px; padding-top:18px; border-top:1px solid var(--border); font-size:11.5px; color:var(--faint); font-family:'JetBrains Mono', monospace; text-align:center; }
+		.diff-list { display: grid; gap: 8px; }
+		.diff-row { border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); overflow: hidden; }
+		.diff-row[open] { border-color: var(--border-strong); }
+		.diff-row > summary { list-style: none; cursor: pointer; padding: 11px 13px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; }
+		.diff-row > summary::-webkit-details-marker { display: none; }
+		.row-key { color: var(--text); font: 650 11.5px/1.3 var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.row-loc { color: var(--dim); font: 500 9.5px/1.3 var(--mono); margin-top: 3px; }
+		.change-count { color: var(--amber); background: var(--amber-soft); border: 1px solid color-mix(in srgb, var(--amber) 25%, transparent); border-radius: 6px; padding: 4px 7px; font: 650 9.5px/1 var(--mono); white-space: nowrap; }
+		.chevron { color: var(--dim); transition: transform .15s ease; }
+		.diff-row[open] .chevron { transform: rotate(180deg); }
+		.diff-body { border-top: 1px solid var(--border); }
+		.cell-diff { display: grid; grid-template-columns: minmax(130px, .7fr) minmax(0, 1fr) 30px minmax(0, 1fr); align-items: stretch; border-bottom: 1px solid var(--border); }
+		.cell-diff:last-child { border-bottom: 0; }
+		.cell-name { padding: 11px 13px; color: var(--muted); font: 600 10.5px/1.4 var(--mono); background: color-mix(in srgb, var(--surface-3) 60%, transparent); }
+		.cell-value { padding: 11px 13px; min-width: 0; font: 500 11px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+		.cell-value.a { color: var(--rose); background: var(--rose-soft); }
+		.cell-value.b { color: var(--green); background: var(--green-soft); }
+		.cell-arrow { display: grid; place-items: center; color: var(--faint); background: var(--surface-2); }
+		.empty-value { color: var(--dim); font-style: italic; }
 
-  .hidden { display:none !important; }
-</style>
+		.table-wrap { border: 1px solid var(--border); border-radius: 10px; overflow: auto; max-height: 540px; }
+		table { width: 100%; border-collapse: collapse; font: 500 11px/1.45 var(--mono); }
+		th { position: sticky; top: 0; z-index: 2; text-align: left; background: var(--surface-3); color: var(--muted); font-weight: 650; padding: 9px 11px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+		td { padding: 9px 11px; border-bottom: 1px solid var(--border); color: var(--text-soft); vertical-align: top; max-width: 360px; overflow-wrap: anywhere; }
+		tbody tr:last-child td { border-bottom: 0; }
+		tbody tr:hover td { background: color-mix(in srgb, var(--surface-hover) 62%, transparent); }
+		.cell-a { color: var(--rose); background: var(--rose-soft); }
+		.cell-b { color: var(--green); background: var(--green-soft); }
+		.key-cell { color: var(--brand); font-weight: 650; }
+		.status-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 6px; border-radius: 5px; font: 650 9px/1 var(--mono); white-space: nowrap; }
+		.status-pill.green { color: var(--green); background: var(--green-soft); }
+		.status-pill.amber { color: var(--amber); background: var(--amber-soft); }
+		.status-pill.rose { color: var(--rose); background: var(--rose-soft); }
+		.status-pill.sky { color: var(--sky); background: var(--sky-soft); }
+		.status-pill.neutral { color: var(--muted); background: var(--surface-3); }
+		.column-map { display: grid; grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr); align-items: center; min-width: 260px; }
+		.column-map .arrow { color: var(--faint); text-align: center; }
+		.pill-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+		.column-pill { padding: 5px 8px; border-radius: 6px; font: 600 10px/1.2 var(--mono); border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); }
+		.column-pill.a { color: var(--rose); background: var(--rose-soft); border-color: color-mix(in srgb, var(--rose) 22%, transparent); }
+		.column-pill.b { color: var(--sky); background: var(--sky-soft); border-color: color-mix(in srgb, var(--sky) 22%, transparent); }
+		.column-toggle { min-width: 74px; }
+
+		.empty-state { min-height: 210px; display: grid; place-items: center; text-align: center; color: var(--muted); }
+		.empty-state-icon { width: 44px; height: 44px; margin: 0 auto 11px; border-radius: 13px; display: grid; place-items: center; background: var(--green-soft); color: var(--green); }
+		.empty-state h3 { margin: 0; color: var(--text-soft); font-size: 14px; }
+		.empty-state p { margin: 5px 0 0; max-width: 380px; font-size: 11.5px; }
+		.pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 13px; color: var(--dim); font: 500 10.5px/1 var(--mono); }
+		.pagination-actions { display: flex; gap: 6px; }
+
+		.quality-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-bottom: 17px; }
+		.quality-card { border: 1px solid var(--border); background: var(--surface-2); border-radius: 10px; padding: 12px; }
+		.quality-card strong { display: block; font: 700 19px/1 var(--mono); margin-bottom: 6px; }
+		.quality-card span { color: var(--dim); font-size: 10.5px; }
+		.section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0 9px; }
+		.section-title:first-child { margin-top: 0; }
+		.section-title h3 { margin: 0; color: var(--text-soft); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+		.section-title span { color: var(--dim); font: 500 9.5px/1 var(--mono); }
+		.meter { width: 86px; height: 5px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+		.meter i { display: block; height: 100%; border-radius: inherit; background: var(--brand); }
+
+		dialog { width: min(720px, calc(100% - 28px)); max-height: min(760px, calc(100vh - 28px)); padding: 0; border: 1px solid var(--border-strong); border-radius: 16px; background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+		dialog::backdrop { background: var(--scrim); backdrop-filter: blur(5px); }
+		.dialog-head { padding: 17px 19px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
+		.dialog-head h2 { margin: 0; font-size: 16px; }
+		.dialog-head p { margin: 4px 0 0; color: var(--muted); font-size: 11.5px; }
+		.dialog-body { padding: 14px 19px; overflow: auto; max-height: 540px; }
+		.dialog-foot { padding: 13px 19px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+		.key-option { display: grid; grid-template-columns: 20px minmax(0, 1fr) repeat(3, 72px); gap: 10px; align-items: center; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+		.key-option:last-child { border-bottom: 0; }
+		.key-option:hover { background: var(--surface-2); }
+		.key-option input { accent-color: var(--brand); }
+		.key-option-name { min-width: 0; font: 600 11px/1.35 var(--mono); }
+		.key-metric { color: var(--dim); font: 500 9.5px/1.25 var(--mono); text-align: right; }
+		.key-metric strong { display: block; color: var(--text-soft); font-size: 10.5px; }
+		.key-option-head { color: var(--dim); background: var(--surface-2); font: 650 8.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; position: sticky; top: -14px; z-index: 2; }
+
+		.toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 18px); z-index: 100; max-width: min(440px, calc(100% - 28px)); padding: 10px 14px; border-radius: 9px; border: 1px solid var(--border-strong); background: var(--surface-3); box-shadow: var(--shadow); color: var(--text-soft); font-size: 11.5px; opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease; }
+		.toast.show { opacity: 1; transform: translate(-50%, 0); }
+		.footer { padding: 28px 0 5px; text-align: center; color: var(--faint); font: 500 10px/1.6 var(--mono); }
+
+		@media (max-width: 980px) {
+			.stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+			.rules-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+			.quality-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+		}
+		@media (max-width: 760px) {
+			.app-shell { width: min(100% - 24px, 1240px); padding-top: 14px; }
+			.topbar { margin-bottom: 32px; }
+			.hero { text-align: left; }
+			.hero p { margin-left: 0; }
+			.upload-grid { grid-template-columns: 1fr; }
+			.bridge { flex-direction: row; height: 36px; }
+			.bridge-line { width: 38px; height: 1px; }
+			.summary-top { grid-template-columns: auto minmax(0, 1fr); }
+			.summary-actions { grid-column: 1 / -1; justify-content: flex-start; }
+			.insight-row { grid-template-columns: 1fr; }
+			.cell-diff { grid-template-columns: 1fr; }
+			.cell-arrow { height: 25px; transform: rotate(90deg); }
+			.key-option { grid-template-columns: 20px minmax(0, 1fr); }
+			.key-option .key-metric { display: none; }
+		}
+		@media (max-width: 520px) {
+			.brand-path, #demoBtn .btn-label, #resetBtn .btn-label, #themeBtn .btn-label { display: none; }
+			.top-actions { gap: 5px; }
+			.file-controls { grid-template-columns: 1fr; }
+			.config-main { align-items: flex-start; }
+			.divider-v { display: none; }
+			.config-block { width: 100%; flex-wrap: wrap; }
+			.config-spacer { display: none; }
+			.rules-grid { grid-template-columns: 1fr; }
+			.stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+			.summary-panel { padding: 15px; }
+			.score-ring { width: 68px; height: 68px; }
+			.summary-copy h2 { font-size: 17px; }
+			.quality-grid { grid-template-columns: 1fr 1fr; }
+			.tab-panel { padding: 12px; }
+		}
+	</style>
 </head>
 <body>
-<div class="wrap">
-  <!-- HEADER -->
-  <div class="header">
-    <div>
-      <div class="brand-row">
-        <span class="logo">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>
-        </span>
-        <div>
-          <div class="title">Report Reconciler</div>
-          <div class="subtitle">recon://diff</div>
-        </div>
-      </div>
-      <div class="lede">Compare two spreadsheet exports side by side. Match rows by a key column, then see exactly which records are missing, added, or changed — down to the individual cell.</div>
-    </div>
-    <div class="header-actions">
-      <button class="btn" id="themeBtn" title="Toggle theme"></button>
-      <button class="btn hidden" id="resetBtn">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
-        Start over
-      </button>
-    </div>
-  </div>
+	<div class="app-shell">
+		<header class="topbar">
+			<div class="brand">
+				<div class="brand-mark" aria-hidden="true">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>
+				</div>
+				<div class="truncate">
+					<div class="brand-name">recon</div>
+					<div class="brand-path">spreadsheet://difference-inspector</div>
+				</div>
+			</div>
+			<div class="top-actions">
+				<button class="btn ghost" id="demoBtn" type="button" title="Load example reports">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5M8 17h7"/></svg>
+					<span class="btn-label">Try demo</span>
+				</button>
+				<button class="btn ghost hidden" id="resetBtn" type="button" title="Clear both reports">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+					<span class="btn-label">Start over</span>
+				</button>
+				<button class="btn ghost" id="themeBtn" type="button" title="Switch color theme"></button>
+			</div>
+		</header>
 
-  <!-- ERROR -->
-  <div class="callout error hidden" id="errorBox" style="margin-bottom:18px;">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2z"/><path d="M12 9v5"/><path d="M12 17h.01"/></svg>
-    <span id="errorMsg"></span>
-  </div>
+		<section class="hero">
+			<div class="eyebrow">
+				<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4L19 6"/></svg>
+				Local-first reconciliation
+			</div>
+			<h1>Find every report difference.<br><span>Understand exactly why.</span></h1>
+			<p>Compare CSV or Excel exports with composite keys, duplicate-safe row pairing, cell-level explanations, data-quality checks, and developer-friendly exports.</p>
+		</section>
 
-  <!-- UPLOADS -->
-  <div class="uploads">
-    <div class="slot a" id="slotA">
-      <div class="slot-label"><span class="dot" style="background:var(--brand)"></span><span>Report A</span></div>
-      <div class="slot-content"></div>
-    </div>
-    <div class="swap-icon">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>
-    </div>
-    <div class="slot b" id="slotB">
-      <div class="slot-label"><span class="dot" style="background:var(--sky)"></span><span>Report B</span></div>
-      <div class="slot-content"></div>
-    </div>
-  </div>
+		<div id="errorBox" class="notice error hidden" role="alert">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l10 18H2z"/><path d="M12 9v5M12 17h.01"/></svg>
+			<span id="errorMessage"></span>
+		</div>
 
-  <!-- INFO (before both loaded) -->
-  <div class="callout" id="infoBox">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01"/><path d="M11 12h1v5h1"/></svg>
-    <div>Works with any two report exports — sales, inventory, HR, finance, anything with matching column headers. Everything runs locally in your browser; no file ever leaves your machine.</div>
-  </div>
+		<section class="upload-grid" aria-label="Report files">
+			<div class="file-slot a" id="slotA"></div>
+			<div class="bridge" aria-hidden="false">
+				<span class="bridge-line"></span>
+				<button id="swapBtn" type="button" title="Swap Report A and Report B" disabled>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 3l4 4-4 4M20 7H5M8 21l-4-4 4-4M4 17h15"/></svg>
+				</button>
+				<span class="bridge-line"></span>
+			</div>
+			<div class="file-slot b" id="slotB"></div>
+		</section>
 
-  <!-- RESULTS (JS-rendered) -->
-  <div id="results" class="hidden"></div>
+		<div class="privacy-strip">
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+			Files are processed in this tab and are never uploaded
+		</div>
 
-  <div class="footer">runs entirely in your browser · no data uploaded</div>
-</div>
+		<main id="workspace" class="workspace hidden"></main>
 
-<script>
-"use strict";
+		<footer class="footer">
+			CSV works offline · Excel parsing uses SheetJS when available · nothing is sent to a server
+		</footer>
+	</div>
 
-/* ------------------------------------------------------------------ */
-/*  State                                                              */
-/* ------------------------------------------------------------------ */
-const state = {
-  A: null,             // { fileName, wb, sheetNames, sheetName, headers, rows }
-  B: null,
-  matchMode: "key",    // 'key' | 'position'
-  keyColumn: "",
-  caseSensitive: false,
-  trimWs: true,
-  activeTab: "overview",
-  search: "",
-};
+	<dialog id="keyDialog" aria-labelledby="keyDialogTitle">
+		<div class="dialog-head">
+			<div>
+				<h2 id="keyDialogTitle">Choose matching key</h2>
+				<p>Select one unique identifier or combine multiple columns into a composite key.</p>
+			</div>
+			<button class="icon-btn" id="closeKeyDialog" type="button" aria-label="Close dialog">×</button>
+		</div>
+		<div class="dialog-body" id="keyDialogBody"></div>
+		<div class="dialog-foot">
+			<span class="muted" id="keyDialogHint">At least one column is required.</span>
+			<div style="display:flex;gap:7px">
+				<button class="btn" id="cancelKeyDialog" type="button">Cancel</button>
+				<button class="btn primary" id="applyKeyDialog" type="button">Apply key</button>
+			</div>
+		</div>
+	</dialog>
 
-const GUESS_KEYS = ["id","code","key","sku","employee_id","emp_id","order_id","invoice_id","uid","reference","ref no","ref_no"];
+	<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
-const $ = (sel, root=document) => root.querySelector(sel);
-const fmt = (n) => (typeof n === "number" ? n.toLocaleString() : n);
-const esc = (s) => String(s ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+	<script>
+	"use strict";
 
-function normalizeVal(v, trimWs, caseSensitive) {
-  let s = v === null || v === undefined ? "" : String(v);
-  if (trimWs) s = s.trim();
-  if (!caseSensitive) s = s.toLowerCase();
-  return s;
-}
-function guessKeyColumn(common) {
-  for (const g of GUESS_KEYS) {
-    const f = common.find(c => c.toLowerCase() === g.toLowerCase());
-    if (f) return f;
-  }
-  return common[0] || "";
-}
-function readWorkbook(file) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = e => { try { resolve(XLSX.read(e.target.result, { type:"array" })); } catch (err) { reject(err); } };
-    r.onerror = () => reject(new Error("read failed"));
-    r.readAsArrayBuffer(file);
-  });
-}
-function sheetToData(wb, sheetName) {
-  const ws = wb.Sheets[sheetName];
-  if (!ws) return { headers: [], rows: [] };
-  const raw = XLSX.utils.sheet_to_json(ws, { header:1, raw:false, defval:"" });
-  const headerRow = raw[0] || [];
-  const headers = headerRow.map((h,i) => (h === "" || h == null ? `Column ${i+1}` : String(h).trim()));
-  const rows = raw.slice(1)
-    .filter(r => r.some(c => String(c ?? "").trim() !== ""))
-    .map(r => {
-      const o = {};
-      headers.forEach((h,i) => o[h] = r[i] === undefined ? "" : r[i]);
-      return o;
-    });
-  return { headers, rows };
-}
+	/* Application JavaScript is intentionally inline so this remains one portable HTML file. */
+	const MAX_FILE_BYTES = 120 * 1024 * 1024;
+	const PAGE_SIZE = 50;
+	const RENDER_COLUMN_LIMIT = 18;
+	const GUESS_KEYS = ["id", "uuid", "uid", "key", "code", "sku", "employee id", "employee_id", "emp id", "emp_id", "order id", "order_id", "invoice id", "invoice_id", "reference", "reference no", "ref", "ref no", "ref_no"];
 
-/* ------------------------------------------------------------------ */
-/*  Derived data                                                      */
-/* ------------------------------------------------------------------ */
-function commonColumns() {
-  if (!state.A || !state.B) return [];
-  const setB = new Set(state.B.headers);
-  return state.A.headers.filter(h => setB.has(h));
-}
-function onlyColsA() {
-  if (!state.A || !state.B) return [];
-  const setB = new Set(state.B.headers);
-  return state.A.headers.filter(h => !setB.has(h));
-}
-function onlyColsB() {
-  if (!state.A || !state.B) return [];
-  const setA = new Set(state.A.headers);
-  return state.B.headers.filter(h => !setA.has(h));
-}
+	const state = {
+		A: null,
+		B: null,
+		loading: { A: false, B: false },
+		options: {
+			matchMode: "key",
+			keyIds: [],
+			headerMode: "relaxed",
+			trimWhitespace: true,
+			collapseWhitespace: true,
+			caseSensitive: false,
+			numericEquivalent: true,
+			numericTolerance: 0,
+			ignoredColumns: new Set()
+		},
+		activeTab: "changes",
+		changeView: "rows",
+		query: "",
+		columnFilter: "all",
+		pages: { changes: 1, onlyA: 1, onlyB: 1 },
+		lastResult: null,
+		keyDraft: [],
+		toastTimer: null
+	};
 
-function compute() {
-  const common = commonColumns();
-  if (!state.A || !state.B || common.length === 0) return null;
-  const { trimWs, caseSensitive, matchMode, keyColumn } = state;
-  const compareCols = matchMode === "key" ? common.filter(c => c !== keyColumn) : common;
+	const $ = (selector, root = document) => root.querySelector(selector);
+	const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+	const fmt = value => typeof value === "number" ? value.toLocaleString() : String(value ?? "");
+	const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+	const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-  if (matchMode === "key" && keyColumn) {
-    const buildMap = rows => {
-      const map = new Map(); let dupes = 0;
-      rows.forEach((r,idx) => {
-        const k = normalizeVal(r[keyColumn], trimWs, caseSensitive);
-        if (k === "") return;
-        if (map.has(k)) dupes++; else map.set(k, { row:r, idx });
-      });
-      return { map, dupes };
-    };
-    const { map:mapA, dupes:dupesA } = buildMap(state.A.rows);
-    const { map:mapB, dupes:dupesB } = buildMap(state.B.rows);
-    const onlyA=[], onlyB=[], mismatches=[];
-    let perfectMatches=0, matchedCount=0;
+	function icon(name, size = 14) {
+		const paths = {
+			search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+			download: '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/>',
+			copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+			check: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5 5-5"/>',
+			warning: '<path d="M12 3l10 18H2z"/><path d="M12 9v5M12 17h.01"/>',
+			info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 8h.01"/>',
+			chevron: '<path d="M6 9l6 6 6-6"/>',
+			columns: '<rect x="3" y="4" width="18" height="16" rx="1"/><path d="M9 4v16M15 4v16"/>',
+			rows: '<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M4 9h16M4 15h16"/>',
+			file: '<path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5M9 13h6M9 17h6"/>',
+			upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
+			arrow: '<path d="M5 12h14M14 7l5 5-5 5"/>',
+			settings: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>'
+		};
+		return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ""}</svg>`;
+	}
 
-    for (const [k,eA] of mapA) if (!mapB.has(k)) onlyA.push({ key:k, row:eA.row });
-    for (const [k,eB] of mapB) if (!mapA.has(k)) onlyB.push({ key:k, row:eB.row });
-    for (const [k,eA] of mapA) {
-      const eB = mapB.get(k); if (!eB) continue;
-      matchedCount++; let bad=false;
-      for (const col of compareCols) {
-        if (normalizeVal(eA.row[col],trimWs,caseSensitive) !== normalizeVal(eB.row[col],trimWs,caseSensitive)) {
-          bad = true; mismatches.push({ key:k, column:col, valueA:eA.row[col], valueB:eB.row[col] });
-        }
-      }
-      if (!bad) perfectMatches++;
-    }
-    return { mode:"key", rowsA:state.A.rows.length, rowsB:state.B.rows.length, colsA:state.A.headers.length, colsB:state.B.headers.length,
-      matchedCount, perfectMatches, mismatchedRowCount:matchedCount-perfectMatches, onlyA, onlyB, mismatches, dupesA, dupesB, compareCols };
-  }
+	function showToast(message) {
+		const toast = $("#toast");
+		toast.textContent = message;
+		toast.classList.add("show");
+		clearTimeout(state.toastTimer);
+		state.toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+	}
 
-  // position mode
-  const lenA=state.A.rows.length, lenB=state.B.rows.length, max=Math.max(lenA,lenB);
-  const onlyA=[], onlyB=[], mismatches=[];
-  let perfectMatches=0, matchedCount=0;
-  for (let i=0;i<max;i++){
-    const label = `row ${i+2}`;
-    if (i<lenA && i<lenB){
-      matchedCount++; let bad=false;
-      for (const col of compareCols){
-        if (normalizeVal(state.A.rows[i][col],trimWs,caseSensitive) !== normalizeVal(state.B.rows[i][col],trimWs,caseSensitive)){
-          bad=true; mismatches.push({ key:label, column:col, valueA:state.A.rows[i][col], valueB:state.B.rows[i][col] });
-        }
-      }
-      if(!bad) perfectMatches++;
-    } else if (i<lenA) onlyA.push({ key:label, row:state.A.rows[i] });
-    else onlyB.push({ key:label, row:state.B.rows[i] });
-  }
-  return { mode:"position", rowsA:lenA, rowsB:lenB, colsA:state.A.headers.length, colsB:state.B.headers.length,
-    matchedCount, perfectMatches, mismatchedRowCount:matchedCount-perfectMatches, onlyA, onlyB, mismatches, dupesA:0, dupesB:0, compareCols };
-}
+	function showError(message) {
+		$("#errorMessage").textContent = message;
+		$("#errorBox").classList.remove("hidden");
+	}
 
-/* ------------------------------------------------------------------ */
-/*  File loading                                                      */
-/* ------------------------------------------------------------------ */
-async function loadFile(file, which){
-  hideError();
-  try {
-    const wb = await readWorkbook(file);
-    const sheetName = wb.SheetNames[0];
-    const { headers, rows } = sheetToData(wb, sheetName);
-    state[which] = { fileName:file.name, wb, sheetNames:wb.SheetNames, sheetName, headers, rows };
-    // reset key column if no longer valid
-    const common = commonColumns();
-    if (common.length && !common.includes(state.keyColumn)) state.keyColumn = guessKeyColumn(common);
-    renderSlot(which);
-    renderResults();
-  } catch(e){
-    showError("Couldn't read that file. Make sure it's a valid .xlsx or .csv export.");
-  }
-}
-function changeSheet(which, sheetName){
-  const slot = state[which]; if (!slot) return;
-  const { headers, rows } = sheetToData(slot.wb, sheetName);
-  slot.sheetName = sheetName; slot.headers = headers; slot.rows = rows;
-  const common = commonColumns();
-  if (common.length && !common.includes(state.keyColumn)) state.keyColumn = guessKeyColumn(common);
-  renderSlot(which);
-  renderResults();
-}
+	function hideError() {
+		$("#errorBox").classList.add("hidden");
+	}
 
-/* ------------------------------------------------------------------ */
-/*  Rendering                                                          */
-/* ------------------------------------------------------------------ */
-function renderSlot(which){
-  const slot = state[which];
-  const el = $("#slot"+which+" .slot-content");
-  const accent = which === "A" ? "var(--brand)" : "var(--sky)";
-  if (!slot){
-    el.innerHTML = `
-      <label class="drop-inner">
-        <span class="drop-badge">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M4 21h16"/></svg>
-        </span>
-        <span class="drop-text">Drop a .xlsx / .csv file<br><small>or click to browse</small></span>
-        <input type="file" accept=".xlsx,.xls,.csv" class="hidden fileInput" />
-      </label>`;
-  } else {
-    const sheetSel = slot.sheetNames.length > 1
-      ? `<select class="sheetSel" style="width:100%;margin-bottom:12px;">${slot.sheetNames.map(s=>`<option ${s===slot.sheetName?"selected":""}>${esc(s)}</option>`).join("")}</select>`
-      : "";
-    el.innerHTML = `
-      <div class="file-head">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${accent}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><path d="M8 13h8"/><path d="M8 17h8"/></svg>
-        <span class="file-name">${esc(slot.fileName)}</span>
-      </div>
-      ${sheetSel}
-      <div class="file-stats">
-        <div><span class="k">rows </span><span class="v">${fmt(slot.rows.length)}</span></div>
-        <div><span class="k">cols </span><span class="v">${slot.headers.length}</span></div>
-      </div>
-      <label class="replace-link" style="color:${accent}">replace file →<input type="file" accept=".xlsx,.xls,.csv" class="hidden fileInput" /></label>`;
-    const ss = el.querySelector(".sheetSel");
-    if (ss) ss.addEventListener("change", e => changeSheet(which, e.target.value));
-  }
-  const inp = el.querySelector(".fileInput");
-  if (inp) inp.addEventListener("change", e => { if (e.target.files[0]) loadFile(e.target.files[0], which); });
-}
+	function formatBytes(bytes) {
+		if (!Number.isFinite(bytes) || bytes <= 0) return "demo data";
+		const units = ["B", "KB", "MB", "GB"];
+		let value = bytes;
+		let unit = 0;
+		while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+		return `${value >= 10 || unit === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[unit]}`;
+	}
 
-function statCard(label, value, accent, sub){
-  return `<div class="card"><span class="accent" style="background:${accent}"></span>
-    <div class="clabel">${label}</div>
-    <div class="cvalue">${fmt(value)}</div>
-    ${sub ? `<div class="csub">${sub}</div>` : ""}</div>`;
-}
+	function normalizeHeader(value) {
+		return String(value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+	}
 
-function pillTone(tone){
-  const map = {
-    green:["var(--green-dim)","var(--green)"],
-    rose:["var(--rose-dim)","var(--rose)"],
-    sky:["var(--sky-dim)","var(--sky)"],
-    amber:["var(--amber-dim)","var(--amber)"],
-  };
-  return map[tone] || ["var(--surface-alt)","var(--muted)"];
-}
-function pill(text, tone){
-  const [bg,fg] = pillTone(tone);
-  return `<span class="pill" style="background:${bg};color:${fg};border-color:color-mix(in srgb, ${fg} 30%, transparent)">${esc(text)}</span>`;
-}
+	function normalizeCell(value, forKey = false) {
+		let text = value === null || value === undefined ? "" : String(value);
+		text = text.replace(/\r\n?/g, "\n");
+		if (state.options.trimWhitespace || forKey) text = text.trim();
+		if (state.options.collapseWhitespace || forKey) text = text.replace(/\s+/g, " ");
+		if (!state.options.caseSensitive) text = text.toLocaleLowerCase();
+		return text;
+	}
 
-function renderResults(){
-  const results = $("#results");
-  const both = state.A && state.B;
-  const common = commonColumns();
+	function parseStrictNumber(value) {
+		const text = String(value ?? "").trim();
+		if (!text || !/^[-+]?(?:\d{1,3}(?:,\d{3})+|\d+)?(?:\.\d+)?(?:[eE][-+]?\d+)?$/.test(text)) return null;
+		const parsed = Number(text.replace(/,/g, ""));
+		return Number.isFinite(parsed) ? parsed : null;
+	}
 
-  // toggle reset btn + info box
-  $("#resetBtn").classList.toggle("hidden", !both);
-  $("#infoBox").classList.toggle("hidden", !!both);
+	function valuesEqual(valueA, valueB) {
+		const a = normalizeCell(valueA);
+		const b = normalizeCell(valueB);
+		if (a === b) return true;
+		if (!state.options.numericEquivalent) return false;
+		const numberA = parseStrictNumber(a);
+		const numberB = parseStrictNumber(b);
+		if (numberA === null || numberB === null) return false;
+		return Math.abs(numberA - numberB) <= Math.max(0, Number(state.options.numericTolerance) || 0);
+	}
 
-  if (!both){ results.classList.add("hidden"); results.innerHTML=""; return; }
-  results.classList.remove("hidden");
+	function displayValue(value) {
+		const text = String(value ?? "");
+		return text === "" ? '<span class="empty-value">(empty)</span>' : esc(text);
+	}
 
-  if (common.length === 0){
-    results.innerHTML = `<div class="callout error">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2z"/><path d="M12 9v5"/><path d="M12 17h.01"/></svg>
-      <div>These two files share no column names, so there's nothing to match on. Check that both reports use the same headers in row 1, or that the right sheet is selected.</div></div>`;
-    return;
-  }
+	function detectDelimiter(text) {
+		const candidates = [",", "\t", ";", "|"];
+		let best = { delimiter: ",", score: -Infinity };
+		for (const delimiter of candidates) {
+			const rows = parseDelimited(text.slice(0, 80000), delimiter).slice(0, 12).filter(row => row.some(cell => String(cell).trim() !== ""));
+			if (!rows.length) continue;
+			const widths = rows.map(row => row.length);
+			const average = widths.reduce((sum, width) => sum + width, 0) / widths.length;
+			const variance = widths.reduce((sum, width) => sum + Math.abs(width - average), 0) / widths.length;
+			const score = average > 1 ? average * 3 - variance * 2 : -1;
+			if (score > best.score) best = { delimiter, score };
+		}
+		return best.delimiter;
+	}
 
-  const r = compute();
-  const matchRate = r && r.matchedCount > 0 ? Math.round(r.perfectMatches / r.matchedCount * 100) : null;
-  const total = r.perfectMatches + r.mismatchedRowCount + r.onlyA.length + r.onlyB.length || 1;
+	function parseDelimited(text, delimiter) {
+		const clean = String(text ?? "").replace(/^\uFEFF/, "");
+		const rows = [];
+		let row = [];
+		let cell = "";
+		let quoted = false;
+		for (let index = 0; index < clean.length; index++) {
+			const char = clean[index];
+			if (quoted) {
+				if (char === '"' && clean[index + 1] === '"') { cell += '"'; index++; }
+				else if (char === '"') quoted = false;
+				else cell += char;
+			} else if (char === '"' && cell === "") {
+				quoted = true;
+			} else if (char === delimiter) {
+				row.push(cell); cell = "";
+			} else if (char === "\n") {
+				row.push(cell); rows.push(row); row = []; cell = "";
+			} else if (char !== "\r") {
+				cell += char;
+			}
+		}
+		if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+		return rows;
+	}
 
-  let verdict;
-  if (r.mismatchedRowCount===0 && r.onlyA.length===0 && r.onlyB.length===0)
-    verdict = { tone:"var(--green)", text:"Fully reconciled", detail:"Every matched row is identical across both reports." };
-  else if (matchRate !== null && matchRate >= 90)
-    verdict = { tone:"var(--amber)", text:"Mostly reconciled", detail:"A small number of differences need review." };
-  else
-    verdict = { tone:"var(--rose)", text:"Significant differences", detail:"The two reports diverge in several places." };
+	async function readSource(file) {
+		if (file.size > MAX_FILE_BYTES) throw new Error("That file is larger than 120 MB. Export a smaller report or split it into sheets first.");
+		const extension = (file.name.split(".").pop() || "").toLowerCase();
+		if (["csv", "tsv", "txt"].includes(extension)) {
+			const text = await file.text();
+			const delimiter = extension === "tsv" ? "\t" : detectDelimiter(text);
+			return { kind: "matrix", sheets: { Data: parseDelimited(text, delimiter) }, sheetNames: ["Data"], delimiter };
+		}
+		if (!["xlsx", "xls", "xlsm", "xlsb"].includes(extension)) throw new Error("Unsupported file type. Use .csv, .tsv, .xlsx, .xls, .xlsm, or .xlsb.");
+		if (typeof window.XLSX === "undefined") throw new Error("The Excel parser could not be loaded. Check your internet connection, or export the report as CSV and try again.");
+		const buffer = await file.arrayBuffer();
+		const workbook = window.XLSX.read(buffer, { type: "array", cellDates: true, dense: false });
+		if (!workbook.SheetNames.length) throw new Error("This workbook has no readable sheets.");
+		return { kind: "xlsx", workbook, sheetNames: workbook.SheetNames.slice() };
+	}
 
-  const seg = (v,label,icon) =>
-    `<button class="seg ${state.matchMode===v?"active":""}" data-mode="${v}">${icon}${label}</button>`;
-  const colIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M9 4v16"/><path d="M15 4v16"/></svg>`;
-  const rowIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M4 9h16"/><path d="M4 15h16"/></svg>`;
+	function sourceMatrix(source, sheetName) {
+		if (source.kind === "matrix") return (source.sheets[sheetName] || []).map(row => row.slice());
+		const worksheet = source.workbook.Sheets[sheetName];
+		if (!worksheet) return [];
+		return window.XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: "", blankrows: true, dateNF: "yyyy-mm-dd" });
+	}
 
-  const keySelector = state.matchMode === "key"
-    ? `<select id="keySel">${common.map(c=>`<option ${c===state.keyColumn?"selected":""}>${esc(c)}</option>`).join("")}</select>`
-    : "";
+	function autoHeaderIndex(matrix) {
+		const limit = Math.min(matrix.length, 16);
+		let best = { index: 0, score: -Infinity };
+		for (let index = 0; index < limit; index++) {
+			const row = matrix[index] || [];
+			const values = row.map(value => String(value ?? "").trim()).filter(Boolean);
+			if (!values.length) continue;
+			const unique = new Set(values.map(normalizeHeader)).size / values.length;
+			const textRatio = values.filter(value => !/^[-+]?\d+(?:[.,]\d+)?$/.test(value)).length / values.length;
+			const nextRows = matrix.slice(index + 1, index + 4).filter(next => next && next.some(value => String(value ?? "").trim() !== ""));
+			const followingFit = nextRows.length ? nextRows.filter(next => next.filter(value => String(value ?? "").trim() !== "").length >= Math.max(1, values.length * .55)).length / nextRows.length : 0;
+			const score = values.length * 2 + unique * 4 + textRatio * 3 + followingFit * 3 - index * .18;
+			if (score > best.score) best = { index, score };
+		}
+		return best.index;
+	}
 
-  const dupeNote = (state.matchMode==="key" && (r.dupesA>0 || r.dupesB>0))
-    ? `<div class="dupe-note">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2z"/><path d="M12 9v5"/><path d="M12 17h.01"/></svg>
-        ${r.dupesA} duplicate key${r.dupesA===1?"":"s"} in Report A and ${r.dupesB} in Report B were collapsed to their first occurrence.
-      </div>` : "";
+	function buildReport(base, sheetName, headerIndex) {
+		const matrix = sourceMatrix(base.source, sheetName);
+		if (!matrix.length) throw new Error(`The sheet “${sheetName}” is empty.`);
+		const boundedHeader = clamp(Number(headerIndex) || 0, 0, Math.max(0, matrix.length - 1));
+		const headerRow = matrix[boundedHeader] || [];
+		const sampleRows = matrix.slice(boundedHeader + 1, boundedHeader + 101);
+		const width = Math.max(headerRow.length, ...sampleRows.map(row => row.length), 0);
+		if (!width) throw new Error(`The sheet “${sheetName}” has no columns.`);
 
-  const swInput = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10"/><path d="M18 6h2"/><path d="M4 12h4"/><path d="M12 12h8"/><path d="M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>`;
+		const seen = new Map();
+		const baseCounts = new Map();
+		const bases = Array.from({ length: width }, (_, index) => {
+			const raw = String(headerRow[index] ?? "").trim();
+			const label = raw || `Column ${index + 1}`;
+			const normalized = normalizeHeader(label);
+			baseCounts.set(normalized, (baseCounts.get(normalized) || 0) + 1);
+			return { raw, label, normalized };
+		});
+		const columns = bases.map((baseColumn, index) => {
+			const occurrence = (seen.get(baseColumn.normalized) || 0) + 1;
+			seen.set(baseColumn.normalized, occurrence);
+			const duplicate = (baseCounts.get(baseColumn.normalized) || 0) > 1;
+			return {
+				id: `c${index}`,
+				index,
+				sourceLabel: baseColumn.label,
+				label: duplicate ? `${baseColumn.label} [${occurrence}]` : baseColumn.label,
+				blankHeader: baseColumn.raw === "",
+				duplicate,
+				occurrence
+			};
+		});
+		const rows = matrix.slice(boundedHeader + 1).map((cells, offset) => ({
+			cells: Array.from({ length: width }, (_, index) => cells[index] === undefined || cells[index] === null ? "" : cells[index]),
+			rowNumber: boundedHeader + offset + 2
+		})).filter(row => row.cells.some(value => String(value ?? "").trim() !== ""));
 
-  results.innerHTML = `
-    <!-- config -->
-    <div class="config">
-      <div class="config-label">${swInput}<span>Match by</span></div>
-      <div class="segmented">${seg("key","Key column",colIcon)}${seg("position","Row position",rowIcon)}</div>
-      ${keySelector}
-      <span class="vsep"></span>
-      <label class="switch" id="swTrim"><span class="track ${state.trimWs?"on":""}"><span class="knob"></span></span><span class="lbl">Trim whitespace</span></label>
-      <label class="switch" id="swCase"><span class="track ${state.caseSensitive?"on":""}"><span class="knob"></span></span><span class="lbl">Case sensitive</span></label>
-    </div>
+		return {
+			...base,
+			sheetName,
+			headerIndex: boundedHeader,
+			matrixLength: matrix.length,
+			columns,
+			rows,
+			headerIssues: {
+				blank: columns.filter(column => column.blankHeader),
+				duplicates: columns.filter(column => column.duplicate)
+			}
+		};
+	}
 
-    ${dupeNote}
+	async function loadFile(file, side) {
+		hideError();
+		state.loading[side] = true;
+		renderSlots();
+		try {
+			const source = await readSource(file);
+			const sheetName = source.sheetNames[0];
+			const matrix = sourceMatrix(source, sheetName);
+			const base = { fileName: file.name, size: file.size, modified: file.lastModified, source, sheetNames: source.sheetNames };
+			state[side] = buildReport(base, sheetName, autoHeaderIndex(matrix));
+			resetAnalysisState();
+			showToast(`${file.name} loaded as Report ${side}`);
+		} catch (error) {
+			showError(error && error.message ? error.message : "That report could not be read.");
+		} finally {
+			state.loading[side] = false;
+			renderSlots();
+			renderResults();
+		}
+	}
 
-    <!-- verdict -->
-    <div class="verdict" style="border-left-color:${verdict.tone}">
-      <div class="pct" style="color:${verdict.tone}">${matchRate!==null?matchRate+"%":"—"}</div>
-      <div><div class="vt">${verdict.text}</div><div class="vd">${verdict.detail}</div></div>
-    </div>
+	function changeSheet(side, sheetName) {
+		try {
+			const current = state[side];
+			const matrix = sourceMatrix(current.source, sheetName);
+			state[side] = buildReport(current, sheetName, autoHeaderIndex(matrix));
+			resetAnalysisState();
+			renderSlots();
+			renderResults();
+		} catch (error) { showError(error.message); }
+	}
 
-    <!-- stats -->
-    <div class="stats">
-      ${statCard("Rows · A", r.rowsA, "var(--brand)")}
-      ${statCard("Rows · B", r.rowsB, "var(--sky)")}
-      ${statCard("Columns matched", common.length, "var(--green)", `of ${r.colsA} / ${r.colsB}`)}
-      ${statCard("Rows matched", r.matchedCount, "var(--text)")}
-      ${statCard("Perfect matches", r.perfectMatches, "var(--green)", matchRate!==null?`${matchRate}% of matched`:"")}
-      ${statCard("Mismatched rows", r.mismatchedRowCount, "var(--amber)")}
-      ${statCard("Only in A", r.onlyA.length, "var(--rose)")}
-      ${statCard("Only in B", r.onlyB.length, "var(--sky)")}
-    </div>
+	function changeHeader(side, oneBasedRow) {
+		try {
+			const current = state[side];
+			state[side] = buildReport(current, current.sheetName, Math.max(0, Number(oneBasedRow) - 1));
+			resetAnalysisState();
+			renderSlots();
+			renderResults();
+		} catch (error) { showError(error.message); }
+	}
 
-    <!-- proportion bar -->
-    <div class="propbar-wrap">
-      <div class="propbar">
-        <div style="width:${r.perfectMatches/total*100}%;background:var(--green);min-width:${r.perfectMatches>0?2:0}px"></div>
-        <div style="width:${r.mismatchedRowCount/total*100}%;background:var(--amber);min-width:${r.mismatchedRowCount>0?2:0}px"></div>
-        <div style="width:${r.onlyA.length/total*100}%;background:var(--rose);min-width:${r.onlyA.length>0?2:0}px"></div>
-        <div style="width:${r.onlyB.length/total*100}%;background:var(--sky);min-width:${r.onlyB.length>0?2:0}px"></div>
-      </div>
-      <div class="legend">
-        <span class="li"><span class="sw" style="background:var(--green)"></span> Perfect match</span>
-        <span class="li"><span class="sw" style="background:var(--amber)"></span> Mismatch</span>
-        <span class="li"><span class="sw" style="background:var(--rose)"></span> Only in A</span>
-        <span class="li"><span class="sw" style="background:var(--sky)"></span> Only in B</span>
-      </div>
-    </div>
+	function removeReport(side) {
+		state[side] = null;
+		resetAnalysisState();
+		hideError();
+		renderSlots();
+		renderResults();
+	}
 
-    <!-- tabs -->
-    <div class="tabs" id="tabs">
-      <button class="tab ${state.activeTab==="overview"?"active":""}" data-tab="overview" style="${state.activeTab==="overview"?"border-color:var(--brand)":""}">Columns</button>
-      <button class="tab ${state.activeTab==="onlyA"?"active":""}" data-tab="onlyA" style="${state.activeTab==="onlyA"?"border-color:var(--rose)":""}">Only in A <span class="badge" style="${state.activeTab==="onlyA"?"color:var(--rose);background:color-mix(in srgb,var(--rose) 12%,transparent)":""}">${fmt(r.onlyA.length)}</span></button>
-      <button class="tab ${state.activeTab==="onlyB"?"active":""}" data-tab="onlyB" style="${state.activeTab==="onlyB"?"border-color:var(--sky)":""}">Only in B <span class="badge" style="${state.activeTab==="onlyB"?"color:var(--sky);background:color-mix(in srgb,var(--sky) 12%,transparent)":""}">${fmt(r.onlyB.length)}</span></button>
-      <button class="tab ${state.activeTab==="mismatches"?"active":""}" data-tab="mismatches" style="${state.activeTab==="mismatches"?"border-color:var(--amber)":""}">Mismatches <span class="badge" style="${state.activeTab==="mismatches"?"color:var(--amber);background:color-mix(in srgb,var(--amber) 12%,transparent)":""}">${fmt(r.mismatches.length)}</span></button>
-    </div>
+	function resetAnalysisState() {
+		state.options.keyIds = [];
+		state.options.ignoredColumns.clear();
+		state.activeTab = "changes";
+		state.query = "";
+		state.columnFilter = "all";
+		state.pages = { changes: 1, onlyA: 1, onlyB: 1 };
+	}
 
-    <div id="tabBody"></div>
-  `;
+	function renderSlot(side) {
+		const slot = $("#slot" + side);
+		const report = state[side];
+		const loading = state.loading[side];
+		const colorName = side === "A" ? "brand" : "sky";
+		let content;
+		if (loading) {
+			content = `<div class="drop-target"><div class="drop-content"><div class="drop-icon">${icon("settings", 20)}</div><div class="drop-title">Reading report…</div><div class="drop-sub">Parsing rows and column headers</div></div></div>`;
+		} else if (!report) {
+			content = `<label class="drop-target"><div class="drop-content"><div class="drop-icon">${icon("upload", 20)}</div><div class="drop-title">Drop a spreadsheet here</div><div class="drop-sub">or click to browse · CSV, TSV, XLSX, XLS</div></div><input class="hidden file-input" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.xlsb" /></label>`;
+		} else {
+			const sheetControl = report.sheetNames.length > 1 ? `<div><label class="field-label" for="sheet${side}">Worksheet</label><select class="select sheet-select" id="sheet${side}">${report.sheetNames.map(name => `<option value="${esc(name)}" ${name === report.sheetName ? "selected" : ""}>${esc(name)}</option>`).join("")}</select></div>` : `<div><span class="field-label">Worksheet</span><div class="select truncate" title="${esc(report.sheetName)}">${esc(report.sheetName)}</div></div>`;
+			const issueCount = report.headerIssues.blank.length + report.headerIssues.duplicates.length;
+			content = `<div class="file-card">
+				<div class="file-title"><div class="file-icon">${icon("file", 17)}</div><div style="min-width:0"><div class="file-name">${esc(report.fileName)}</div><div class="file-meta">${formatBytes(report.size)}${report.modified ? ` · modified ${new Date(report.modified).toLocaleDateString()}` : ""}</div></div></div>
+				<div class="file-controls">${sheetControl}<div><label class="field-label" for="header${side}">Header row</label><input class="input header-input" id="header${side}" type="number" min="1" max="${Math.max(1, report.matrixLength)}" value="${report.headerIndex + 1}" /></div></div>
+				<div class="file-footer"><div class="file-stats"><span><strong>${fmt(report.rows.length)}</strong> rows</span><span><strong>${fmt(report.columns.length)}</strong> cols</span>${issueCount ? `<span style="color:var(--amber)"><strong>${issueCount}</strong> header flags</span>` : ""}</div><label class="text-action">Replace<input class="hidden file-input" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.xlsb" /></label></div>
+			</div>`;
+		}
+		slot.innerHTML = `<div class="slot-inner"><div class="slot-label"><span class="slot-label-main"><i class="slot-dot"></i>Report ${side}</span>${report ? `<button class="text-action remove-report" type="button" aria-label="Remove Report ${side}" style="color:var(--${colorName})">Remove</button>` : ""}</div>${content}</div>`;
+		const input = $(".file-input", slot);
+		if (input) input.addEventListener("change", event => { if (event.target.files && event.target.files[0]) loadFile(event.target.files[0], side); });
+		const sheet = $(".sheet-select", slot);
+		if (sheet) sheet.addEventListener("change", event => changeSheet(side, event.target.value));
+		const header = $(".header-input", slot);
+		if (header) header.addEventListener("change", event => changeHeader(side, event.target.value));
+		const remove = $(".remove-report", slot);
+		if (remove) remove.addEventListener("click", () => removeReport(side));
+	}
 
-  renderTabBody(r, matchRate);
-  wireResultEvents(r);
-}
+	function renderSlots() {
+		renderSlot("A");
+		renderSlot("B");
+		$("#swapBtn").disabled = !(state.A && state.B);
+		$("#resetBtn").classList.toggle("hidden", !(state.A || state.B));
+	}
 
-function renderTabBody(r, matchRate){
-  const body = $("#tabBody");
-  const common = commonColumns();
+	function wireDropZone(side) {
+		const slot = $("#slot" + side);
+		let dragDepth = 0;
+		slot.addEventListener("dragenter", event => { event.preventDefault(); dragDepth++; slot.classList.add("dragging"); });
+		slot.addEventListener("dragover", event => event.preventDefault());
+		slot.addEventListener("dragleave", () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) slot.classList.remove("dragging"); });
+		slot.addEventListener("drop", event => {
+			event.preventDefault(); dragDepth = 0; slot.classList.remove("dragging");
+			if (event.dataTransfer && event.dataTransfer.files[0]) loadFile(event.dataTransfer.files[0], side);
+		});
+	}
 
-  if (state.activeTab === "overview"){
-    let html = `<div style="margin-bottom:18px;"><div class="group-label">Common columns · ${common.length}</div>${common.map(c=>pill(c,"green")).join("")}</div>`;
-    const oa = onlyColsA(), ob = onlyColsB();
-    if (oa.length) html += `<div style="margin-bottom:18px;"><div class="group-label">Only in Report A · ${oa.length}</div>${oa.map(c=>pill(c,"rose")).join("")}</div>`;
-    if (ob.length) html += `<div><div class="group-label">Only in Report B · ${ob.length}</div>${ob.map(c=>pill(c,"sky")).join("")}</div>`;
-    body.innerHTML = html;
-    return;
-  }
+	function getColumnMap() {
+		if (!state.A || !state.B) return { common: [], onlyA: [], onlyB: [] };
+		const keyFor = column => state.options.headerMode === "strict" ? column.sourceLabel : normalizeHeader(column.sourceLabel);
+		const groupsB = new Map();
+		state.B.columns.forEach(column => {
+			const key = keyFor(column);
+			if (!groupsB.has(key)) groupsB.set(key, []);
+			groupsB.get(key).push(column);
+		});
+		const usedB = new Set();
+		const occurrences = new Map();
+		const common = [];
+		const onlyA = [];
+		state.A.columns.forEach(columnA => {
+			const key = keyFor(columnA);
+			const occurrence = occurrences.get(key) || 0;
+			occurrences.set(key, occurrence + 1);
+			const columnB = (groupsB.get(key) || [])[occurrence];
+			if (!columnB) { onlyA.push(columnA); return; }
+			usedB.add(columnB.index);
+			common.push({
+				id: `${columnA.index}:${columnB.index}`,
+				indexA: columnA.index,
+				indexB: columnB.index,
+				columnA,
+				columnB,
+				label: columnA.sourceLabel === columnB.sourceLabel ? columnA.label : `${columnA.label} ↔ ${columnB.label}`,
+				relaxed: columnA.sourceLabel !== columnB.sourceLabel
+			});
+		});
+		const onlyB = state.B.columns.filter(column => !usedB.has(column.index));
+		return { common, onlyA, onlyB };
+	}
 
-  if (state.activeTab === "onlyA" || state.activeTab === "onlyB"){
-    const list = state.activeTab === "onlyA" ? r.onlyA : r.onlyB;
-    const tone = state.activeTab === "onlyA" ? "var(--rose)" : "var(--sky)";
-    const label = state.matchMode === "key" ? state.keyColumn : "position";
-    if (!list.length){
-      body.innerHTML = `<div class="empty-line"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5 5-5"/></svg> None — every row matched.</div>`;
-      return;
-    }
-    const cols = r.compareCols.slice(0,5);
-    const rows = list.slice(0,300).map(item => `
-      <tr><td style="color:${tone}">${esc(item.key)}</td>${cols.map(c=>`<td>${esc(item.row[c])}</td>`).join("")}</tr>`).join("");
-    body.innerHTML = `
-      <div class="tbl-box scroll">
-        <table>
-          <thead><tr><th style="color:${tone};font-weight:600">${esc(label)}</th>${cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-        ${list.length>300?`<div class="more-note">Showing first 300 of ${fmt(list.length)}</div>`:""}
-      </div>`;
-    return;
-  }
+	function keyRecommendations(common) {
+		return common.map(pair => {
+			const valuesA = state.A.rows.map(row => normalizeCell(row.cells[pair.indexA], true)).filter(Boolean);
+			const valuesB = state.B.rows.map(row => normalizeCell(row.cells[pair.indexB], true)).filter(Boolean);
+			const setA = new Set(valuesA);
+			const setB = new Set(valuesB);
+			const coverageA = state.A.rows.length ? valuesA.length / state.A.rows.length : 0;
+			const coverageB = state.B.rows.length ? valuesB.length / state.B.rows.length : 0;
+			const uniqueA = valuesA.length ? setA.size / valuesA.length : 0;
+			const uniqueB = valuesB.length ? setB.size / valuesB.length : 0;
+			let intersection = 0;
+			setA.forEach(value => { if (setB.has(value)) intersection++; });
+			const overlap = Math.max(setA.size, setB.size) ? intersection / Math.max(setA.size, setB.size) : 0;
+			const guessed = GUESS_KEYS.includes(normalizeHeader(pair.columnA.sourceLabel));
+			const score = (coverageA + coverageB) * .18 + (uniqueA + uniqueB) * .24 + overlap * .16 + (guessed ? .18 : 0);
+			return { pair, coverageA, coverageB, uniqueA, uniqueB, overlap, score, guessed };
+		}).sort((left, right) => right.score - left.score);
+	}
 
-  if (state.activeTab === "mismatches"){
-    const q = state.search.trim().toLowerCase();
-    const filtered = q ? r.mismatches.filter(m => String(m.key).toLowerCase().includes(q) || String(m.column).toLowerCase().includes(q)) : r.mismatches;
-    const searchIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-3.5-3.5"/></svg>`;
-    const dlIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>`;
-    const minus = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>`;
-    const plus  = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>`;
+	function syncColumnOptions(mapping) {
+		const validIds = new Set(mapping.common.map(pair => pair.id));
+		state.options.keyIds = state.options.keyIds.filter(id => validIds.has(id));
+		state.options.ignoredColumns = new Set(Array.from(state.options.ignoredColumns).filter(id => validIds.has(id)));
+		if (state.options.matchMode === "key" && !state.options.keyIds.length && mapping.common.length) {
+			const recommendation = keyRecommendations(mapping.common)[0];
+			if (recommendation) state.options.keyIds = [recommendation.pair.id];
+		}
+	}
 
-    let listHtml;
-    if (!filtered.length){
-      listHtml = `<div class="empty-line"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5 5-5"/></svg> No cell-level mismatches${q?" matching that filter":" in the matched rows"}.</div>`;
-    } else {
-      const rows = filtered.slice(0,400).map((m,i)=>`
-        <div class="mm-row">
-          <div class="mm-idx">${i+1}</div>
-          <div class="mm-body">
-            <div class="mm-key"><b>${esc(m.key)}</b> · ${esc(m.column)}</div>
-            <div class="mm-a">${minus} ${esc(m.valueA) || "(empty)"}</div>
-            <div class="mm-b">${plus} ${esc(m.valueB) || "(empty)"}</div>
-          </div>
-        </div>`).join("");
-      listHtml = `<div class="mm-box scroll">${rows}${filtered.length>400?`<div class="more-note">Showing first 400 of ${fmt(filtered.length)} — narrow with the filter above</div>`:""}</div>`;
-    }
+	function keyDescriptor(row, side, keyPairs) {
+		const values = keyPairs.map(pair => row.cells[side === "A" ? pair.indexA : pair.indexB]);
+		const normalized = values.map(value => normalizeCell(value, true));
+		if (normalized.every(value => value === "")) return { token: null, display: "(blank key)", values };
+		const display = values.length === 1 ? String(values[0] ?? "") || "(blank)" : values.map((value, index) => `${keyPairs[index].columnA.sourceLabel}=${String(value ?? "") || "(blank)"}`).join(" · ");
+		return { token: JSON.stringify(normalized), display, values };
+	}
 
-    body.innerHTML = `
-      <div class="mm-toolbar">
-        <div class="search-box">${searchIcon}<input type="text" id="searchInput" placeholder="Filter by key or column" value="${esc(state.search)}" /></div>
-        <button class="btn" id="exportBtn" ${r.mismatches.length?"":"disabled"} style="${r.mismatches.length?"color:var(--text)":""}">${dlIcon} Export CSV</button>
-      </div>
-      ${listHtml}`;
+	function rowFingerprint(row, side, comparePairs) {
+		return JSON.stringify(comparePairs.map(pair => normalizeCell(row.cells[side === "A" ? pair.indexA : pair.indexB])));
+	}
 
-    const si = $("#searchInput");
-    if (si){
-      si.addEventListener("input", e => { state.search = e.target.value; renderTabBody(r, matchRate);
-        // keep focus + caret at end
-        const el = $("#searchInput"); if (el){ el.focus(); const v=el.value; el.value=""; el.value=v; }
-      });
-    }
-    const eb = $("#exportBtn");
-    if (eb) eb.addEventListener("click", () => exportCsv(r));
-  }
-}
+	function rowMismatchCount(rowA, rowB, comparePairs) {
+		let count = 0;
+		for (const pair of comparePairs) if (!valuesEqual(rowA.cells[pair.indexA], rowB.cells[pair.indexB])) count++;
+		return count;
+	}
 
-function wireResultEvents(r){
-  // segmented match mode
-  document.querySelectorAll(".seg").forEach(b => b.addEventListener("click", () => {
-    state.matchMode = b.dataset.mode; renderResults();
-  }));
-  // key selector
-  const ks = $("#keySel");
-  if (ks) ks.addEventListener("change", e => { state.keyColumn = e.target.value; renderResults(); });
-  // switches
-  const st = $("#swTrim"); if (st) st.addEventListener("click", () => { state.trimWs = !state.trimWs; renderResults(); });
-  const sc = $("#swCase"); if (sc) sc.addEventListener("click", () => { state.caseSensitive = !state.caseSensitive; renderResults(); });
-  // tabs
-  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
-    state.activeTab = t.dataset.tab; renderResults();
-  }));
-}
+	function pairRepeatedRows(entriesA, entriesB, comparePairs) {
+		const pairs = [];
+		const unmatchedA = new Set(entriesA.map((_, index) => index));
+		const unmatchedB = new Set(entriesB.map((_, index) => index));
+		const fingerprintB = new Map();
+		entriesB.forEach((entry, index) => {
+			const fingerprint = rowFingerprint(entry.row, "B", comparePairs);
+			if (!fingerprintB.has(fingerprint)) fingerprintB.set(fingerprint, []);
+			fingerprintB.get(fingerprint).push(index);
+		});
+		entriesA.forEach((entryA, indexA) => {
+			const fingerprint = rowFingerprint(entryA.row, "A", comparePairs);
+			const candidates = fingerprintB.get(fingerprint) || [];
+			const indexB = candidates.find(candidate => unmatchedB.has(candidate));
+			if (indexB === undefined) return;
+			pairs.push([entryA, entriesB[indexB]]);
+			unmatchedA.delete(indexA);
+			unmatchedB.delete(indexB);
+		});
 
-function exportCsv(r){
-  const rows = [["key","column","value_a","value_b"]];
-  r.mismatches.forEach(m => rows.push([m.key, m.column, m.valueA, m.valueB]));
-  const csv = rows.map(row => row.map(v => `"${String(v ?? "").replace(/"/g,'""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type:"text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = "mismatches.csv";
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+		const remainingA = Array.from(unmatchedA);
+		const remainingB = new Set(unmatchedB);
+		for (const indexA of remainingA) {
+			if (!remainingB.size) break;
+			let bestIndex = null;
+			let bestScore = Infinity;
+			if (remainingA.length * remainingB.size <= 3600) {
+				for (const indexB of remainingB) {
+					const score = rowMismatchCount(entriesA[indexA].row, entriesB[indexB].row, comparePairs);
+					if (score < bestScore) { bestScore = score; bestIndex = indexB; if (score === 0) break; }
+				}
+			} else bestIndex = remainingB.values().next().value;
+			if (bestIndex !== null && bestIndex !== undefined) {
+				pairs.push([entriesA[indexA], entriesB[bestIndex]]);
+				unmatchedA.delete(indexA);
+				remainingB.delete(bestIndex);
+			}
+		}
+		return {
+			pairs,
+			extraA: Array.from(unmatchedA).map(index => entriesA[index]),
+			extraB: Array.from(remainingB).map(index => entriesB[index])
+		};
+	}
 
-function reset(){
-  state.A = null; state.B = null; state.keyColumn = ""; state.search = ""; state.activeTab = "overview";
-  hideError();
-  renderSlot("A"); renderSlot("B"); renderResults();
-}
+	function compareRowPair(rowA, rowB, displayKey, token, comparePairs) {
+		const changes = [];
+		for (const pair of comparePairs) {
+			const valueA = rowA.cells[pair.indexA];
+			const valueB = rowB.cells[pair.indexB];
+			if (!valuesEqual(valueA, valueB)) changes.push({
+				key: displayKey,
+				token,
+				columnId: pair.id,
+				column: pair.label,
+				columnA: pair.columnA.label,
+				columnB: pair.columnB.label,
+				valueA,
+				valueB,
+				rowNumberA: rowA.rowNumber,
+				rowNumberB: rowB.rowNumber
+			});
+		}
+		return { key: displayKey, token, rowA, rowB, changes };
+	}
 
-/* ------------------------------------------------------------------ */
-/*  Errors                                                            */
-/* ------------------------------------------------------------------ */
-function showError(msg){ $("#errorMsg").textContent = msg; $("#errorBox").classList.remove("hidden"); }
-function hideError(){ $("#errorBox").classList.add("hidden"); }
+	function compute(mapping) {
+		const keyPairs = state.options.matchMode === "key" ? mapping.common.filter(pair => state.options.keyIds.includes(pair.id)) : [];
+		const keyIds = new Set(keyPairs.map(pair => pair.id));
+		const comparePairs = mapping.common.filter(pair => !keyIds.has(pair.id) && !state.options.ignoredColumns.has(pair.id));
+		const matchedRows = [];
+		const onlyA = [];
+		const onlyB = [];
+		const quality = { duplicateGroupsA: [], duplicateGroupsB: [], blankKeysA: [], blankKeysB: [], pairingFallbacks: 0 };
 
-/* ------------------------------------------------------------------ */
-/*  Theme                                                             */
-/* ------------------------------------------------------------------ */
-function applyTheme(theme){
-  document.documentElement.setAttribute("data-theme", theme);
-  const btn = $("#themeBtn");
-  const sun = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.9 4.9l1.4 1.4"/><path d="M17.7 17.7l1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.9 19.1l1.4-1.4"/><path d="M17.7 6.3l1.4-1.4"/></svg>`;
-  const moon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>`;
-  btn.innerHTML = theme === "dark" ? sun + " Light" : moon + " Dark";
-  try { localStorage.setItem("recon-theme", theme); } catch(e){}
-}
-function initTheme(){
-  let theme = "dark";
-  try { const saved = localStorage.getItem("recon-theme"); if (saved) theme = saved; else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) theme = "light"; } catch(e){}
-  applyTheme(theme);
-}
+		if (state.options.matchMode === "key") {
+			if (!keyPairs.length) return { error: "Choose at least one common column as the matching key.", mapping, keyPairs, comparePairs };
+			const buildGroups = (report, side) => {
+				const groups = new Map();
+				const blanks = [];
+				report.rows.forEach(row => {
+					const descriptor = keyDescriptor(row, side, keyPairs);
+					const entry = { row, descriptor };
+					if (descriptor.token === null) { blanks.push(entry); return; }
+					if (!groups.has(descriptor.token)) groups.set(descriptor.token, []);
+					groups.get(descriptor.token).push(entry);
+				});
+				return { groups, blanks };
+			};
+			const groupA = buildGroups(state.A, "A");
+			const groupB = buildGroups(state.B, "B");
+			quality.blankKeysA = groupA.blanks;
+			quality.blankKeysB = groupB.blanks;
+			groupA.blanks.forEach(entry => onlyA.push({ key: `(blank key) · row ${entry.row.rowNumber}`, row: entry.row, reason: "blank-key" }));
+			groupB.blanks.forEach(entry => onlyB.push({ key: `(blank key) · row ${entry.row.rowNumber}`, row: entry.row, reason: "blank-key" }));
+			for (const [token, entries] of groupA.groups) if (entries.length > 1) quality.duplicateGroupsA.push({ token, key: entries[0].descriptor.display, entries });
+			for (const [token, entries] of groupB.groups) if (entries.length > 1) quality.duplicateGroupsB.push({ token, key: entries[0].descriptor.display, entries });
 
-/* ------------------------------------------------------------------ */
-/*  Drag & drop wiring                                                */
-/* ------------------------------------------------------------------ */
-function wireDropZone(which){
-  const zone = $("#slot"+which);
-  const cls = which === "A" ? "a" : "b";
-  zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("drag", cls); });
-  zone.addEventListener("dragleave", () => zone.classList.remove("drag", cls));
-  zone.addEventListener("drop", e => {
-    e.preventDefault(); zone.classList.remove("drag", cls);
-    if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0], which);
-  });
-}
+			const tokens = [...groupA.groups.keys(), ...Array.from(groupB.groups.keys()).filter(token => !groupA.groups.has(token))];
+			for (const token of tokens) {
+				const entriesA = groupA.groups.get(token) || [];
+				const entriesB = groupB.groups.get(token) || [];
+				const displayKey = (entriesA[0] || entriesB[0]).descriptor.display;
+				if (!entriesA.length) { entriesB.forEach(entry => onlyB.push({ key: displayKey, row: entry.row, reason: "missing-key" })); continue; }
+				if (!entriesB.length) { entriesA.forEach(entry => onlyA.push({ key: displayKey, row: entry.row, reason: "missing-key" })); continue; }
+				const paired = pairRepeatedRows(entriesA, entriesB, comparePairs);
+				paired.pairs.forEach(([entryA, entryB]) => matchedRows.push(compareRowPair(entryA.row, entryB.row, displayKey, token, comparePairs)));
+				paired.extraA.forEach(entry => onlyA.push({ key: displayKey, row: entry.row, reason: "duplicate-surplus" }));
+				paired.extraB.forEach(entry => onlyB.push({ key: displayKey, row: entry.row, reason: "duplicate-surplus" }));
+			}
+		} else {
+			const maximum = Math.max(state.A.rows.length, state.B.rows.length);
+			for (let index = 0; index < maximum; index++) {
+				const rowA = state.A.rows[index];
+				const rowB = state.B.rows[index];
+				const displayKey = `Data row ${index + 1}`;
+				if (rowA && rowB) matchedRows.push(compareRowPair(rowA, rowB, displayKey, `position:${index}`, comparePairs));
+				else if (rowA) onlyA.push({ key: displayKey, row: rowA, reason: "extra-position" });
+				else if (rowB) onlyB.push({ key: displayKey, row: rowB, reason: "extra-position" });
+			}
+		}
 
-/* ------------------------------------------------------------------ */
-/*  Init                                                              */
-/* ------------------------------------------------------------------ */
-initTheme();
-renderSlot("A");
-renderSlot("B");
-wireDropZone("A");
-wireDropZone("B");
-$("#themeBtn").addEventListener("click", () => {
-  const cur = document.documentElement.getAttribute("data-theme");
-  applyTheme(cur === "dark" ? "light" : "dark");
-});
-$("#resetBtn").addEventListener("click", reset);
-</script>
+		const changedRows = matchedRows.filter(row => row.changes.length);
+		const perfectRows = matchedRows.length - changedRows.length;
+		const changes = changedRows.flatMap(row => row.changes);
+		const totalRows = matchedRows.length + onlyA.length + onlyB.length;
+		const score = totalRows ? Math.round(perfectRows / totalRows * 100) : 100;
+		const coverage = totalRows ? Math.round(matchedRows.length / totalRows * 100) : 100;
+		const comparedCells = matchedRows.length * comparePairs.length;
+		const cellAccuracy = comparedCells ? Math.round((1 - changes.length / comparedCells) * 10000) / 100 : null;
+		const columnCounts = new Map();
+		changes.forEach(change => columnCounts.set(change.columnId, (columnCounts.get(change.columnId) || 0) + 1));
+		return { mapping, keyPairs, comparePairs, matchedRows, changedRows, perfectRows, changes, onlyA, onlyB, quality, score, coverage, cellAccuracy, totalRows, columnCounts };
+	}
+
+	function verdictFor(result) {
+		if (!result.comparePairs.length) return { color: "var(--amber)", title: "Rows aligned; values not compared", detail: "The keys align, but no non-key columns are currently included in the comparison." };
+		if (!result.changes.length && !result.onlyA.length && !result.onlyB.length) return { color: "var(--green)", title: "Fully reconciled", detail: "All matched rows and compared cells are identical." };
+		if (result.score >= 95 && result.onlyA.length + result.onlyB.length <= 3) return { color: "var(--amber)", title: "Nearly reconciled", detail: "A small, isolated set of differences needs review." };
+		if (result.score >= 70) return { color: "var(--amber)", title: "Differences found", detail: "The reports mostly align, with several records or values to investigate." };
+		return { color: "var(--rose)", title: "Significant divergence", detail: "Missing records and changed values materially separate these reports." };
+	}
+
+	function renderToggle(option, label, help) {
+		const enabled = Boolean(state.options[option]);
+		return `<div class="rule-item"><div class="toggle-row"><span>${esc(label)}</span><button class="toggle ${enabled ? "on" : ""}" type="button" role="switch" aria-checked="${enabled}" data-toggle="${option}" aria-label="${esc(label)}"></button></div><div class="rule-help">${esc(help)}</div></div>`;
+	}
+
+	function renderConfig(mapping, result) {
+		const keyPairs = mapping.common.filter(pair => state.options.keyIds.includes(pair.id));
+		const keyChips = keyPairs.map(pair => `<span class="key-chip" title="${esc(pair.label)}">${esc(pair.label)}</span>`).join("");
+		return `<section class="panel config-panel">
+			<div class="config-main">
+				<div class="config-block"><span class="config-caption">Match rows by</span><div class="segmented">
+					<button class="segment ${state.options.matchMode === "key" ? "active" : ""}" type="button" data-mode="key">${icon("columns", 12)}Key</button>
+					<button class="segment ${state.options.matchMode === "position" ? "active" : ""}" type="button" data-mode="position">${icon("rows", 12)}Position</button>
+				</div></div>
+				${state.options.matchMode === "key" ? `<span class="divider-v"></span><div class="config-block"><span class="config-caption">Key</span><div class="key-chips">${keyChips || '<span class="muted">Not selected</span>'}</div><button class="btn small" id="editKeyBtn" type="button">Edit key</button><button class="btn small ghost" id="autoKeyBtn" type="button" title="Use the highest quality key candidate">Auto</button></div>` : `<span class="muted" style="font-size:11.5px">Rows are compared in their current order.</span>`}
+				<div class="config-spacer"></div>
+				<span class="tag">${fmt(result.comparePairs.length)} compared columns</span>
+				<span class="tag">${state.options.headerMode === "strict" ? "Exact" : "Relaxed"} headers</span>
+			</div>
+			<details class="rules"><summary><span>${icon("settings", 13)} &nbsp;Comparison rules</span><span>Whitespace, casing, numbers, and headers</span></summary>
+				<div class="rules-grid">
+					${renderToggle("trimWhitespace", "Trim edge whitespace", "Ignores spaces before and after a value.")}
+					${renderToggle("collapseWhitespace", "Collapse whitespace", "Treats repeated spaces and line breaks as one space.")}
+					${renderToggle("caseSensitive", "Case sensitive", "Distinguishes “Open” from “open”.")}
+					${renderToggle("numericEquivalent", "Numeric equivalence", "Treats 1,200.00 and 1200 as the same number.")}
+					<div class="rule-item"><label class="field-label" for="toleranceInput">Numeric tolerance</label><input class="input" id="toleranceInput" type="number" min="0" step="any" value="${esc(state.options.numericTolerance)}" ${state.options.numericEquivalent ? "" : "disabled"} /><div class="rule-help">Absolute allowed difference, for example 0.01.</div></div>
+					<div class="rule-item"><label class="field-label" for="headerModeSelect">Column header matching</label><select class="select" id="headerModeSelect"><option value="relaxed" ${state.options.headerMode === "relaxed" ? "selected" : ""}>Relaxed case + spacing</option><option value="strict" ${state.options.headerMode === "strict" ? "selected" : ""}>Exact header text</option></select><div class="rule-help">Relaxed mode maps “Order ID” to “ order id ”.</div></div>
+				</div>
+			</details>
+		</section>`;
+	}
+
+	function statCard(label, value, color, sub) {
+		return `<div class="stat" style="--stat-color:${color || "var(--text)"}"><div class="stat-label">${esc(label)}</div><div class="stat-value">${fmt(value)}</div>${sub ? `<div class="stat-sub">${esc(sub)}</div>` : ""}</div>`;
+	}
+
+	function renderSummary(result) {
+		const verdict = verdictFor(result);
+		const denominator = result.perfectRows + result.changedRows.length + result.onlyA.length + result.onlyB.length || 1;
+		const duplicateCount = result.quality.duplicateGroupsA.length + result.quality.duplicateGroupsB.length;
+		const blankCount = result.quality.blankKeysA.length + result.quality.blankKeysB.length;
+		const headerFlags = state.A.headerIssues.blank.length + state.A.headerIssues.duplicates.length + state.B.headerIssues.blank.length + state.B.headerIssues.duplicates.length;
+		const insights = [];
+		if (!result.comparePairs.length) insights.push(`<div class="insight warning">${icon("warning", 14)}<div><strong>No value columns are being compared.</strong> Include at least one non-key column before treating this result as reconciled.<button type="button" data-goto="columns">Choose columns</button></div></div>`);
+		if (state.options.matchMode === "key" && (duplicateCount || blankCount)) insights.push(`<div class="insight warning">${icon("warning", 14)}<div><strong>Key quality needs attention.</strong> ${fmt(duplicateCount)} duplicate group${duplicateCount === 1 ? "" : "s"} and ${fmt(blankCount)} blank-key row${blankCount === 1 ? "" : "s"} detected.<button type="button" data-goto="quality">Inspect</button></div></div>`);
+		if (headerFlags || result.mapping.onlyA.length || result.mapping.onlyB.length) insights.push(`<div class="insight info">${icon("info", 14)}<div><strong>Column schema differs.</strong> ${fmt(result.mapping.onlyA.length)} A-only, ${fmt(result.mapping.onlyB.length)} B-only, and ${fmt(headerFlags)} header flag${headerFlags === 1 ? "" : "s"}.<button type="button" data-goto="columns">Review</button></div></div>`);
+		return `${insights.length ? `<div class="insight-row">${insights.join("")}</div>` : ""}<section class="panel summary-panel" style="--verdict-color:${verdict.color}">
+			<div class="summary-top">
+				<div class="score-ring" style="--score:${result.score}"><strong>${result.score}%</strong></div>
+				<div class="summary-copy"><h2>${verdict.title}</h2><p>${verdict.detail}</p><div class="summary-badges"><span class="tag">${state.options.matchMode === "key" ? `${result.keyPairs.length}-column key` : "row position"}</span><span class="tag">${result.coverage}% row coverage</span>${result.cellAccuracy !== null ? `<span class="tag">${result.cellAccuracy}% cell accuracy</span>` : ""}</div></div>
+				<div class="summary-actions"><button class="btn" id="copySummaryBtn" type="button">${icon("copy", 13)} Copy summary</button><details class="export-wrap"><summary class="btn">${icon("download", 13)} Export</summary><div class="export-menu"><button type="button" data-export="changes">${icon("download", 12)} Cell differences CSV</button><button type="button" data-export="onlyA">${icon("download", 12)} Only-in-A CSV</button><button type="button" data-export="onlyB">${icon("download", 12)} Only-in-B CSV</button><button type="button" data-export="json">${icon("download", 12)} Complete diff JSON</button></div></details></div>
+			</div>
+			<div class="stat-grid">
+				${statCard("Perfect rows", result.perfectRows, "var(--green)", "identical across compared columns")}
+				${statCard("Changed rows", result.changedRows.length, "var(--amber)", `${fmt(result.changes.length)} changed cells`)}
+				${statCard("Only in A", result.onlyA.length, "var(--rose)", state.A.fileName)}
+				${statCard("Only in B", result.onlyB.length, "var(--sky)", state.B.fileName)}
+				${statCard("Matched rows", result.matchedRows.length, "var(--text)", `${result.coverage}% coverage`)}
+				${statCard("Compared cols", result.comparePairs.length, "var(--brand)", `${result.mapping.common.length} common total`)}
+			</div>
+			<div class="proportion" aria-label="Row result proportions"><i style="width:${result.perfectRows / denominator * 100}%;background:var(--green)"></i><i style="width:${result.changedRows.length / denominator * 100}%;background:var(--amber)"></i><i style="width:${result.onlyA.length / denominator * 100}%;background:var(--rose)"></i><i style="width:${result.onlyB.length / denominator * 100}%;background:var(--sky)"></i></div>
+			<div class="legend"><span><i style="background:var(--green)"></i>Perfect</span><span><i style="background:var(--amber)"></i>Changed</span><span><i style="background:var(--rose)"></i>Only A</span><span><i style="background:var(--sky)"></i>Only B</span></div>
+		</section>`;
+	}
+
+	function renderTabs(result) {
+		const qualityCount = result.quality.duplicateGroupsA.length + result.quality.duplicateGroupsB.length + result.quality.blankKeysA.length + result.quality.blankKeysB.length + state.A.headerIssues.blank.length + state.A.headerIssues.duplicates.length + state.B.headerIssues.blank.length + state.B.headerIssues.duplicates.length;
+		const tabs = [
+			["changes", "Changes", result.changedRows.length],
+			["onlyA", "Only in A", result.onlyA.length],
+			["onlyB", "Only in B", result.onlyB.length],
+			["columns", "Columns", result.mapping.common.length],
+			["quality", "Data quality", qualityCount]
+		];
+		return `<section class="tabs-shell"><nav class="tabs" aria-label="Difference views">${tabs.map(([id, label, count]) => `<button class="tab ${state.activeTab === id ? "active" : ""}" type="button" data-tab="${id}">${esc(label)}<span class="badge">${fmt(count)}</span></button>`).join("")}</nav><div class="tab-panel" id="tabPanel"></div></section>`;
+	}
+
+	function renderResults() {
+		const workspace = $("#workspace");
+		if (!(state.A && state.B)) {
+			workspace.classList.add("hidden");
+			workspace.innerHTML = "";
+			state.lastResult = null;
+			return;
+		}
+		workspace.classList.remove("hidden");
+		const mapping = getColumnMap();
+		syncColumnOptions(mapping);
+		if (!mapping.common.length) {
+			workspace.innerHTML = `<div class="notice error">${icon("warning", 16)}<div><strong>No common columns were found.</strong><br>Check each header-row setting, select the correct worksheets, or switch column-header matching to relaxed mode.</div></div><section class="panel config-panel" style="margin-top:14px"><details class="rules" open><summary><span>${icon("settings", 13)} &nbsp;Column matching</span></summary><div class="rules-grid"><div class="rule-item"><label class="field-label" for="headerModeSelect">Column header matching</label><select class="select" id="headerModeSelect"><option value="relaxed" ${state.options.headerMode === "relaxed" ? "selected" : ""}>Relaxed case + spacing</option><option value="strict" ${state.options.headerMode === "strict" ? "selected" : ""}>Exact header text</option></select></div></div></details></section>`;
+			const headerMode = $("#headerModeSelect");
+			if (headerMode) headerMode.addEventListener("change", event => { state.options.headerMode = event.target.value; resetAnalysisState(); renderResults(); });
+			return;
+		}
+		const result = compute(mapping);
+		state.lastResult = result;
+		if (result.error) {
+			workspace.innerHTML = `${renderConfig(mapping, result)}<div class="notice error">${icon("warning", 16)}<span>${esc(result.error)}</span></div>`;
+			wireConfigEvents(mapping);
+			return;
+		}
+		workspace.innerHTML = `${renderConfig(mapping, result)}${renderSummary(result)}${renderTabs(result)}`;
+		renderTabBody(result);
+		wireWorkspaceEvents(mapping, result);
+	}
+
+	function currentChangedRows(result) {
+		const query = state.query.trim().toLocaleLowerCase();
+		return result.changedRows.map(row => ({ ...row, visibleChanges: row.changes.filter(change => state.columnFilter === "all" || change.columnId === state.columnFilter) })).filter(row => {
+			if (!row.visibleChanges.length) return false;
+			if (!query) return true;
+			return row.key.toLocaleLowerCase().includes(query) || row.visibleChanges.some(change => String(change.column).toLocaleLowerCase().includes(query) || String(change.valueA ?? "").toLocaleLowerCase().includes(query) || String(change.valueB ?? "").toLocaleLowerCase().includes(query));
+		});
+	}
+
+	function paginationMarkup(type, totalItems) {
+		const pages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+		state.pages[type] = clamp(state.pages[type] || 1, 1, pages);
+		const page = state.pages[type];
+		const start = totalItems ? (page - 1) * PAGE_SIZE + 1 : 0;
+		const end = Math.min(totalItems, page * PAGE_SIZE);
+		return `<div class="pagination"><span>Showing ${fmt(start)}–${fmt(end)} of ${fmt(totalItems)}</span><div class="pagination-actions"><button class="btn small" type="button" data-page-type="${type}" data-page="${page - 1}" ${page <= 1 ? "disabled" : ""}>Previous</button><button class="btn small" type="button" data-page-type="${type}" data-page="${page + 1}" ${page >= pages ? "disabled" : ""}>Next</button></div></div>`;
+	}
+
+	function emptyState(title, detail) {
+		return `<div class="empty-state"><div><div class="empty-state-icon">${icon("check", 19)}</div><h3>${esc(title)}</h3><p>${esc(detail)}</p></div></div>`;
+	}
+
+	function renderChanges(result) {
+		const rows = currentChangedRows(result);
+		const page = clamp(state.pages.changes || 1, 1, Math.max(1, Math.ceil(rows.length / PAGE_SIZE)));
+		state.pages.changes = page;
+		const visible = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+		const columnOptions = result.comparePairs.filter(pair => result.columnCounts.has(pair.id)).map(pair => `<option value="${esc(pair.id)}" ${state.columnFilter === pair.id ? "selected" : ""}>${esc(pair.label)} (${fmt(result.columnCounts.get(pair.id) || 0)})</option>`).join("");
+		const toolbar = `<div class="toolbar"><div class="search">${icon("search", 13)}<input class="input" id="searchInput" type="search" placeholder="Search key, column, or value" value="${esc(state.query)}" /></div><select class="select" id="columnFilter"><option value="all">All changed columns</option>${columnOptions}</select><div class="segmented"><button class="segment ${state.changeView === "rows" ? "active" : ""}" type="button" data-view="rows">Grouped rows</button><button class="segment ${state.changeView === "cells" ? "active" : ""}" type="button" data-view="cells">Cells</button></div><span class="toolbar-spacer"></span><span class="result-count">${fmt(rows.length)} changed row${rows.length === 1 ? "" : "s"}</span><button class="btn small" type="button" data-export="filteredChanges">${icon("download", 12)} Export filtered</button></div>`;
+		if (!rows.length) return `${toolbar}${emptyState(state.query || state.columnFilter !== "all" ? "No changes match this filter" : "No cell differences", state.query || state.columnFilter !== "all" ? "Clear the search or choose another changed column." : "All matched rows contain identical values under the current comparison rules.")}`;
+		let content;
+		if (state.changeView === "rows") {
+			content = `<div class="diff-list">${visible.map(row => `<details class="diff-row"><summary><div style="min-width:0"><div class="row-key" title="${esc(row.key)}">${esc(row.key)}</div><div class="row-loc">A:${fmt(row.rowA.rowNumber)} ↔ B:${fmt(row.rowB.rowNumber)}</div></div><span class="change-count">${fmt(row.visibleChanges.length)} field${row.visibleChanges.length === 1 ? "" : "s"}</span><span class="chevron">${icon("chevron", 14)}</span></summary><div class="diff-body">${row.visibleChanges.map(change => `<div class="cell-diff"><div class="cell-name">${esc(change.column)}</div><div class="cell-value a">${displayValue(change.valueA)}</div><div class="cell-arrow">${icon("arrow", 12)}</div><div class="cell-value b">${displayValue(change.valueB)}</div></div>`).join("")}</div></details>`).join("")}</div>`;
+		} else {
+			const cells = visible.flatMap(row => row.visibleChanges);
+			content = `<div class="table-wrap"><table><thead><tr><th>Key</th><th>Source rows</th><th>Column</th><th>Report A</th><th>Report B</th></tr></thead><tbody>${cells.map(change => `<tr><td class="key-cell">${esc(change.key)}</td><td>A:${fmt(change.rowNumberA)} · B:${fmt(change.rowNumberB)}</td><td>${esc(change.column)}</td><td class="cell-a">${displayValue(change.valueA)}</td><td class="cell-b">${displayValue(change.valueB)}</td></tr>`).join("")}</tbody></table></div>`;
+		}
+		return `${toolbar}${content}${paginationMarkup("changes", rows.length)}`;
+	}
+
+	function filterOnlyRows(items, side, report) {
+		const query = state.query.trim().toLocaleLowerCase();
+		if (!query) return items;
+		return items.filter(item => item.key.toLocaleLowerCase().includes(query) || item.row.cells.some(value => String(value ?? "").toLocaleLowerCase().includes(query)) || report.columns.some(column => column.label.toLocaleLowerCase().includes(query)));
+	}
+
+	function renderOnly(result, side) {
+		const type = side === "A" ? "onlyA" : "onlyB";
+		const report = state[side];
+		const items = filterOnlyRows(result[type], side, report);
+		const page = clamp(state.pages[type] || 1, 1, Math.max(1, Math.ceil(items.length / PAGE_SIZE)));
+		state.pages[type] = page;
+		const visible = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+		const columns = report.columns.slice(0, RENDER_COLUMN_LIMIT);
+		const tone = side === "A" ? "rose" : "sky";
+		const toolbar = `<div class="toolbar"><div class="search">${icon("search", 13)}<input class="input" id="searchInput" type="search" placeholder="Search any value in Report ${side}" value="${esc(state.query)}" /></div><span class="toolbar-spacer"></span><span class="result-count">${fmt(items.length)} unmatched row${items.length === 1 ? "" : "s"}</span><button class="btn small" type="button" data-export="${type}">${icon("download", 12)} Export rows</button></div>`;
+		if (!items.length) return `${toolbar}${emptyState(state.query ? "No rows match this search" : `Nothing exists only in Report ${side}`, state.query ? "Try a broader value or clear the search." : "Every keyed record on this side has a counterpart.")}`;
+		return `${toolbar}<div class="table-wrap"><table><thead><tr><th>Match key</th><th>Reason</th><th>Source row</th>${columns.map(column => `<th>${esc(column.label)}</th>`).join("")}</tr></thead><tbody>${visible.map(item => `<tr><td class="key-cell">${esc(item.key)}</td><td><span class="status-pill ${tone}">${esc(reasonLabel(item.reason))}</span></td><td>${fmt(item.row.rowNumber)}</td>${columns.map(column => `<td>${displayValue(item.row.cells[column.index])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${report.columns.length > RENDER_COLUMN_LIMIT ? `<div class="muted" style="margin-top:9px;font-size:10.5px">Preview shows the first ${RENDER_COLUMN_LIMIT} columns; the CSV export includes all ${fmt(report.columns.length)}.</div>` : ""}${paginationMarkup(type, items.length)}`;
+	}
+
+	function reasonLabel(reason) {
+		return ({ "blank-key": "blank key", "missing-key": "key absent", "duplicate-surplus": "extra duplicate", "extra-position": "extra row" })[reason] || reason;
+	}
+
+	function renderColumns(result) {
+		const keyIds = new Set(result.keyPairs.map(pair => pair.id));
+		return `<div class="toolbar"><span class="result-count">${fmt(result.mapping.common.length)} mapped · ${fmt(result.mapping.onlyA.length + result.mapping.onlyB.length)} unmapped</span><span class="toolbar-spacer"></span><button class="btn small" type="button" id="includeAllBtn">Include all</button><button class="btn small" type="button" id="ignoreUnchangedBtn">Ignore unchanged</button></div>
+		<div class="table-wrap"><table><thead><tr><th>Column mapping</th><th>Role</th><th>Changed cells</th><th>Comparison</th></tr></thead><tbody>${result.mapping.common.map(pair => {
+			const isKey = keyIds.has(pair.id);
+			const ignored = state.options.ignoredColumns.has(pair.id);
+			const count = ignored ? null : result.columnCounts.get(pair.id) || 0;
+			return `<tr><td><div class="column-map"><span>${esc(pair.columnA.label)}</span><span class="arrow">→</span><span>${esc(pair.columnB.label)}</span></div>${pair.relaxed ? '<span class="status-pill neutral" style="margin-top:5px">relaxed header match</span>' : ""}</td><td>${isKey ? '<span class="status-pill green">match key</span>' : ignored ? '<span class="status-pill neutral">ignored</span>' : '<span class="status-pill sky">compared</span>'}</td><td style="color:${ignored ? "var(--dim)" : count ? "var(--amber)" : "var(--green)"}">${ignored ? "not checked" : fmt(count)}</td><td>${isKey ? '<span class="dim">locked</span>' : `<button class="btn small column-toggle" type="button" data-column-toggle="${esc(pair.id)}">${ignored ? "Include" : "Ignore"}</button>`}</td></tr>`;
+		}).join("")}</tbody></table></div>
+		${result.mapping.onlyA.length ? `<div class="section-title"><h3>Only in Report A</h3><span>${fmt(result.mapping.onlyA.length)} columns</span></div><div class="pill-cloud">${result.mapping.onlyA.map(column => `<span class="column-pill a">${esc(column.label)}</span>`).join("")}</div>` : ""}
+		${result.mapping.onlyB.length ? `<div class="section-title"><h3>Only in Report B</h3><span>${fmt(result.mapping.onlyB.length)} columns</span></div><div class="pill-cloud">${result.mapping.onlyB.map(column => `<span class="column-pill b">${esc(column.label)}</span>`).join("")}</div>` : ""}`;
+	}
+
+	function percent(value) { return `${Math.round(value * 100)}%`; }
+
+	function renderQuality(result) {
+		const quality = result.quality;
+		const duplicateRowsA = quality.duplicateGroupsA.reduce((sum, group) => sum + group.entries.length - 1, 0);
+		const duplicateRowsB = quality.duplicateGroupsB.reduce((sum, group) => sum + group.entries.length - 1, 0);
+		const headerA = state.A.headerIssues.blank.length + state.A.headerIssues.duplicates.length;
+		const headerB = state.B.headerIssues.blank.length + state.B.headerIssues.duplicates.length;
+		const recommendations = keyRecommendations(result.mapping.common);
+		let details = "";
+		if (state.options.matchMode === "key") {
+			const duplicateGroups = [
+				...quality.duplicateGroupsA.map(group => ({ ...group, side: "A" })),
+				...quality.duplicateGroupsB.map(group => ({ ...group, side: "B" }))
+			];
+			if (duplicateGroups.length) details += `<div class="section-title"><h3>Duplicate key groups</h3><span>Exact rows are paired first; remaining rows use the closest cell match</span></div><div class="table-wrap"><table><thead><tr><th>Report</th><th>Key</th><th>Occurrences</th><th>Source rows</th></tr></thead><tbody>${duplicateGroups.slice(0, 100).map(group => `<tr><td><span class="status-pill ${group.side === "A" ? "rose" : "sky"}">Report ${group.side}</span></td><td class="key-cell">${esc(group.key)}</td><td>${fmt(group.entries.length)}</td><td>${group.entries.map(entry => fmt(entry.row.rowNumber)).join(", ")}</td></tr>`).join("")}</tbody></table></div>`;
+			if (quality.blankKeysA.length || quality.blankKeysB.length) details += `<div class="section-title"><h3>Blank matching keys</h3><span>Blank keys are never silently matched</span></div><div class="pill-cloud">${quality.blankKeysA.map(entry => `<span class="column-pill a">A · row ${fmt(entry.row.rowNumber)}</span>`).join("")}${quality.blankKeysB.map(entry => `<span class="column-pill b">B · row ${fmt(entry.row.rowNumber)}</span>`).join("")}</div>`;
+		} else details += `<div class="notice info">${icon("info", 14)}<span>Duplicate and blank-key checks are unavailable in row-position mode. Switch to key matching to audit identifier quality.</span></div>`;
+
+		return `<div class="quality-grid">
+			<div class="quality-card"><strong style="color:${duplicateRowsA ? "var(--amber)" : "var(--green)"}">${fmt(duplicateRowsA)}</strong><span>extra duplicate rows in A</span></div>
+			<div class="quality-card"><strong style="color:${duplicateRowsB ? "var(--amber)" : "var(--green)"}">${fmt(duplicateRowsB)}</strong><span>extra duplicate rows in B</span></div>
+			<div class="quality-card"><strong style="color:${quality.blankKeysA.length + quality.blankKeysB.length ? "var(--amber)" : "var(--green)"}">${fmt(quality.blankKeysA.length + quality.blankKeysB.length)}</strong><span>rows with blank keys</span></div>
+			<div class="quality-card"><strong style="color:${headerA + headerB ? "var(--amber)" : "var(--green)"}">${fmt(headerA + headerB)}</strong><span>blank or duplicate header flags</span></div>
+		</div>${details}
+		<div class="section-title"><h3>Key candidate analysis</h3><span>Completeness · uniqueness · cross-report overlap</span></div>
+		<div class="table-wrap"><table><thead><tr><th>Candidate</th><th>Complete A / B</th><th>Unique A / B</th><th>Overlap</th><th>Assessment</th></tr></thead><tbody>${recommendations.map((item, index) => `<tr><td class="key-cell">${esc(item.pair.label)} ${index === 0 ? '<span class="status-pill green">recommended</span>' : ""}</td><td>${percent(item.coverageA)} / ${percent(item.coverageB)}</td><td>${percent(item.uniqueA)} / ${percent(item.uniqueB)}</td><td><div style="display:flex;align-items:center;gap:8px"><div class="meter"><i style="width:${percent(item.overlap)}"></i></div>${percent(item.overlap)}</div></td><td>${item.guessed ? '<span class="status-pill sky">identifier name</span>' : item.uniqueA > .98 && item.uniqueB > .98 ? '<span class="status-pill green">high uniqueness</span>' : '<span class="status-pill neutral">review</span>'}</td></tr>`).join("")}</tbody></table></div>
+		${headerA + headerB ? `<div class="section-title"><h3>Header diagnostics</h3><span>Use the file cards above to change the header row</span></div><div class="pill-cloud">${state.A.headerIssues.blank.map(column => `<span class="column-pill a">A · blank header at column ${column.index + 1}</span>`).join("")}${state.A.headerIssues.duplicates.map(column => `<span class="column-pill a">A · duplicate ${esc(column.label)}</span>`).join("")}${state.B.headerIssues.blank.map(column => `<span class="column-pill b">B · blank header at column ${column.index + 1}</span>`).join("")}${state.B.headerIssues.duplicates.map(column => `<span class="column-pill b">B · duplicate ${esc(column.label)}</span>`).join("")}</div>` : ""}`;
+	}
+
+	function renderTabBody(result) {
+		const panel = $("#tabPanel");
+		if (!panel) return;
+		if (state.activeTab === "changes") panel.innerHTML = renderChanges(result);
+		else if (state.activeTab === "onlyA") panel.innerHTML = renderOnly(result, "A");
+		else if (state.activeTab === "onlyB") panel.innerHTML = renderOnly(result, "B");
+		else if (state.activeTab === "columns") panel.innerHTML = renderColumns(result);
+		else panel.innerHTML = renderQuality(result);
+		wireTabEvents(result);
+	}
+
+	function rerenderTabWithFocus(result) {
+		renderTabBody(result);
+		const input = $("#searchInput");
+		if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+	}
+
+	function wireConfigEvents(mapping) {
+		$$('[data-mode]').forEach(button => button.addEventListener("click", () => {
+			state.options.matchMode = button.dataset.mode;
+			state.pages = { changes: 1, onlyA: 1, onlyB: 1 };
+			renderResults();
+		}));
+		const editKey = $("#editKeyBtn");
+		if (editKey) editKey.addEventListener("click", () => openKeyDialog(mapping));
+		const autoKey = $("#autoKeyBtn");
+		if (autoKey) autoKey.addEventListener("click", () => {
+			const recommendation = keyRecommendations(mapping.common)[0];
+			if (recommendation) { state.options.keyIds = [recommendation.pair.id]; renderResults(); showToast(`Using ${recommendation.pair.label} as the matching key`); }
+		});
+		$$('[data-toggle]').forEach(toggle => toggle.addEventListener("click", () => {
+			const option = toggle.dataset.toggle;
+			state.options[option] = !state.options[option];
+			renderResults();
+		}));
+		const tolerance = $("#toleranceInput");
+		if (tolerance) tolerance.addEventListener("change", event => { state.options.numericTolerance = Math.max(0, Number(event.target.value) || 0); renderResults(); });
+		const headerMode = $("#headerModeSelect");
+		if (headerMode) headerMode.addEventListener("change", event => {
+			state.options.headerMode = event.target.value;
+			resetAnalysisState();
+			renderResults();
+		});
+	}
+
+	function wireWorkspaceEvents(mapping, result) {
+		wireConfigEvents(mapping);
+		$$('[data-goto]').forEach(button => button.addEventListener("click", () => { state.activeTab = button.dataset.goto; state.query = ""; renderResults(); $(".tabs-shell")?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
+		$$('[data-tab]').forEach(button => button.addEventListener("click", () => { state.activeTab = button.dataset.tab; state.query = ""; state.pages[state.activeTab] = 1; renderResults(); }));
+		const copySummary = $("#copySummaryBtn");
+		if (copySummary) copySummary.addEventListener("click", () => copyText(summaryText(result), "Summary copied"));
+		$$('.export-menu [data-export]').forEach(button => button.addEventListener("click", () => handleExport(button.dataset.export, result)));
+	}
+
+	function wireTabEvents(result) {
+		const search = $("#searchInput");
+		if (search) search.addEventListener("input", event => {
+			state.query = event.target.value;
+			if (["changes", "onlyA", "onlyB"].includes(state.activeTab)) state.pages[state.activeTab] = 1;
+			rerenderTabWithFocus(result);
+		});
+		const columnFilter = $("#columnFilter");
+		if (columnFilter) columnFilter.addEventListener("change", event => { state.columnFilter = event.target.value; state.pages.changes = 1; renderTabBody(result); });
+		$$('[data-view]').forEach(button => button.addEventListener("click", () => { state.changeView = button.dataset.view; renderTabBody(result); }));
+		$$('[data-page]').forEach(button => button.addEventListener("click", () => { state.pages[button.dataset.pageType] = Number(button.dataset.page); renderTabBody(result); }));
+		$$('[data-column-toggle]').forEach(button => button.addEventListener("click", () => {
+			const id = button.dataset.columnToggle;
+			if (state.options.ignoredColumns.has(id)) state.options.ignoredColumns.delete(id); else state.options.ignoredColumns.add(id);
+			renderResults();
+		}));
+		const includeAll = $("#includeAllBtn");
+		if (includeAll) includeAll.addEventListener("click", () => { state.options.ignoredColumns.clear(); renderResults(); });
+		const ignoreUnchanged = $("#ignoreUnchangedBtn");
+		if (ignoreUnchanged) ignoreUnchanged.addEventListener("click", () => {
+			const keyIds = new Set(result.keyPairs.map(pair => pair.id));
+			result.mapping.common.forEach(pair => { if (!keyIds.has(pair.id) && !(result.columnCounts.get(pair.id) || 0)) state.options.ignoredColumns.add(pair.id); });
+			renderResults();
+		});
+		$$('#tabPanel [data-export]').forEach(button => button.addEventListener("click", () => handleExport(button.dataset.export, result)));
+	}
+
+	function openKeyDialog(mapping) {
+		const recommendations = keyRecommendations(mapping.common);
+		state.keyDraft = state.options.keyIds.slice();
+		$("#keyDialogBody").innerHTML = `<div class="key-option key-option-head"><span></span><span>Column</span><span class="key-metric">Complete</span><span class="key-metric">Unique</span><span class="key-metric">Overlap</span></div>${recommendations.map((item, index) => `<label class="key-option"><input type="checkbox" value="${esc(item.pair.id)}" ${state.keyDraft.includes(item.pair.id) ? "checked" : ""}/><span class="key-option-name truncate" title="${esc(item.pair.label)}">${esc(item.pair.label)} ${index === 0 ? '<span class="status-pill green">recommended</span>' : ""}</span><span class="key-metric"><strong>${percent(Math.min(item.coverageA, item.coverageB))}</strong>both</span><span class="key-metric"><strong>${percent(Math.min(item.uniqueA, item.uniqueB))}</strong>minimum</span><span class="key-metric"><strong>${percent(item.overlap)}</strong>shared</span></label>`).join("")}`;
+		$$('#keyDialogBody input[type="checkbox"]').forEach(input => input.addEventListener("change", () => {
+			state.keyDraft = $$('#keyDialogBody input[type="checkbox"]:checked').map(item => item.value);
+			$("#keyDialogHint").textContent = state.keyDraft.length ? `${state.keyDraft.length} column${state.keyDraft.length === 1 ? "" : "s"} selected` : "At least one column is required.";
+		}));
+		$("#keyDialogHint").textContent = `${state.keyDraft.length} column${state.keyDraft.length === 1 ? "" : "s"} selected`;
+		$("#keyDialog").showModal();
+	}
+
+	function csvCell(value) {
+		let text = String(value ?? "");
+		if (/^[\t\r\n ]*(?:[=+@]|-(?!\d))/.test(text)) text = "'" + text;
+		return `"${text.replace(/"/g, '""')}"`;
+	}
+	function rowsToCsv(rows) { return "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n"); }
+
+	function downloadBlob(content, type, fileName) {
+		const blob = new Blob([content], { type });
+		const url = URL.createObjectURL(blob);
+		const anchor = document.createElement("a");
+		anchor.href = url;
+		anchor.download = fileName;
+		document.body.appendChild(anchor);
+		anchor.click();
+		anchor.remove();
+		setTimeout(() => URL.revokeObjectURL(url), 0);
+		showToast(`${fileName} downloaded`);
+	}
+
+	function exportChanges(result, filtered = false) {
+		const changeRows = filtered ? currentChangedRows(result).flatMap(row => row.visibleChanges) : result.changes;
+		const rows = [["difference_type", "match_key", "report_a_row", "report_b_row", "column_a", "column_b", "value_a", "value_b"]];
+		changeRows.forEach(change => rows.push(["changed_cell", change.key, change.rowNumberA, change.rowNumberB, change.columnA, change.columnB, change.valueA, change.valueB]));
+		downloadBlob(rowsToCsv(rows), "text/csv;charset=utf-8", filtered ? "recon-filtered-changes.csv" : "recon-cell-differences.csv");
+	}
+
+	function exportOnly(result, side) {
+		const report = state[side];
+		const items = result[side === "A" ? "onlyA" : "onlyB"];
+		const rows = [["difference_type", "report", "reason", "match_key", "source_row", ...report.columns.map(column => column.label)]];
+		items.forEach(item => rows.push(["unmatched_row", side, reasonLabel(item.reason), item.key, item.row.rowNumber, ...report.columns.map(column => item.row.cells[column.index])]));
+		downloadBlob(rowsToCsv(rows), "text/csv;charset=utf-8", `recon-only-in-${side.toLowerCase()}.csv`);
+	}
+
+	function summaryObject(result) {
+		return {
+			generatedAt: new Date().toISOString(),
+			reportA: { file: state.A.fileName, sheet: state.A.sheetName, headerRow: state.A.headerIndex + 1, rows: state.A.rows.length, columns: state.A.columns.length },
+			reportB: { file: state.B.fileName, sheet: state.B.sheetName, headerRow: state.B.headerIndex + 1, rows: state.B.rows.length, columns: state.B.columns.length },
+			matching: { mode: state.options.matchMode, key: result.keyPairs.map(pair => pair.label), headerMode: state.options.headerMode },
+			rules: { trimWhitespace: state.options.trimWhitespace, collapseWhitespace: state.options.collapseWhitespace, caseSensitive: state.options.caseSensitive, numericEquivalent: state.options.numericEquivalent, numericTolerance: state.options.numericTolerance, ignoredColumns: result.mapping.common.filter(pair => state.options.ignoredColumns.has(pair.id)).map(pair => pair.label) },
+			summary: { reconciliationScore: result.score, rowCoverage: result.coverage, cellAccuracy: result.cellAccuracy, matchedRows: result.matchedRows.length, perfectRows: result.perfectRows, changedRows: result.changedRows.length, changedCells: result.changes.length, onlyInA: result.onlyA.length, onlyInB: result.onlyB.length },
+			quality: { duplicateKeyGroupsA: result.quality.duplicateGroupsA.length, duplicateKeyGroupsB: result.quality.duplicateGroupsB.length, blankKeysA: result.quality.blankKeysA.length, blankKeysB: result.quality.blankKeysB.length }
+		};
+	}
+
+	function exportJson(result) {
+		const payload = {
+			...summaryObject(result),
+			columnMapping: result.mapping.common.map(pair => ({ reportA: pair.columnA.label, reportB: pair.columnB.label, role: result.keyPairs.some(key => key.id === pair.id) ? "key" : state.options.ignoredColumns.has(pair.id) ? "ignored" : "compared", changedCells: result.columnCounts.get(pair.id) || 0 })),
+			changes: result.changes.map(change => ({ key: change.key, reportARow: change.rowNumberA, reportBRow: change.rowNumberB, columnA: change.columnA, columnB: change.columnB, valueA: change.valueA, valueB: change.valueB })),
+			onlyInA: result.onlyA.map(item => ({ key: item.key, row: item.row.rowNumber, reason: item.reason, values: Object.fromEntries(state.A.columns.map(column => [column.label, item.row.cells[column.index]])) })),
+			onlyInB: result.onlyB.map(item => ({ key: item.key, row: item.row.rowNumber, reason: item.reason, values: Object.fromEntries(state.B.columns.map(column => [column.label, item.row.cells[column.index]])) }))
+		};
+		downloadBlob(JSON.stringify(payload, null, 2), "application/json", "recon-complete-diff.json");
+	}
+
+	function handleExport(type, result) {
+		if (type === "changes") exportChanges(result, false);
+		else if (type === "filteredChanges") exportChanges(result, true);
+		else if (type === "onlyA") exportOnly(result, "A");
+		else if (type === "onlyB") exportOnly(result, "B");
+		else if (type === "json") exportJson(result);
+	}
+
+	function summaryText(result) {
+		const summary = summaryObject(result);
+		return [
+			`Reconciliation: ${summary.summary.reconciliationScore}%`,
+			`A: ${summary.reportA.file} · ${fmt(summary.reportA.rows)} rows`,
+			`B: ${summary.reportB.file} · ${fmt(summary.reportB.rows)} rows`,
+			`Mode: ${summary.matching.mode}${summary.matching.key.length ? ` · key ${summary.matching.key.join(" + ")}` : ""}`,
+			`Perfect: ${fmt(summary.summary.perfectRows)} · Changed: ${fmt(summary.summary.changedRows)} rows / ${fmt(summary.summary.changedCells)} cells`,
+			`Only A: ${fmt(summary.summary.onlyInA)} · Only B: ${fmt(summary.summary.onlyInB)}`
+		].join("\n");
+	}
+
+	async function copyText(text, successMessage) {
+		try {
+			if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
+			else {
+				const area = document.createElement("textarea");
+				area.value = text;
+				area.style.position = "fixed";
+				area.style.opacity = "0";
+				document.body.appendChild(area);
+				area.select();
+				document.execCommand("copy");
+				area.remove();
+			}
+			showToast(successMessage);
+		} catch (_) { showToast("Copy failed — select the text from an export instead"); }
+	}
+
+	function loadDemo() {
+		const sheetsA = { Orders: [
+			["Order ID", "Customer", "Status", "Total", "Region", "Updated At", "Legacy note"],
+			["ORD-1001", "Aster Labs", "Shipped", "1,200.00", "North", "2026-08-18", "priority"],
+			["ORD-1002", "Boreal Inc", "Pending", "450", "West", "2026-08-18", ""],
+			["ORD-1003", "Cinder Co", "Shipped", "899.00", "South", "2026-08-17", "manual"],
+			["ORD-1004", "Delta Works", "Cancelled", "75", "East", "2026-08-16", ""],
+			["ORD-1005", "Ember Studio", "Pending", "300", "North", "2026-08-19", ""],
+			["ORD-1005", "Ember Studio", "Pending", "325", "North", "2026-08-20", "duplicate"],
+			["", "Unkeyed account", "Pending", "50", "West", "2026-08-20", "review"]
+		] };
+		const sheetsB = { Orders: [
+			["Order ID", "Customer", "Status", "Total", "Region", "Updated At", "Owner"],
+			["ORD-1001", "Aster Labs", "shipped", "1200", "North", "2026-08-18", "Mira"],
+			["ORD-1002", "Boreal Incorporated", "Approved", "455", "West", "2026-08-21", "Jon"],
+			["ORD-1004", "Delta Works", "Cancelled", "75", "East", "2026-08-16", "Mira"],
+			["ORD-1005", "Ember Studio", "Pending", "300", "North", "2026-08-19", "Jon"],
+			["ORD-1005", "Ember Studio", "On hold", "325", "North", "2026-08-20", "Jon"],
+			["ORD-1006", "Flux Retail", "Pending", "640", "South", "2026-08-21", "Mira"],
+			["", "Another unkeyed account", "Pending", "52", "West", "2026-08-21", "Jon"]
+		] };
+		const sourceA = { kind: "matrix", sheets: sheetsA, sheetNames: ["Orders"] };
+		const sourceB = { kind: "matrix", sheets: sheetsB, sheetNames: ["Orders"] };
+		state.A = buildReport({ fileName: "orders-before.csv", size: 0, modified: 0, source: sourceA, sheetNames: sourceA.sheetNames }, "Orders", 0);
+		state.B = buildReport({ fileName: "orders-after.csv", size: 0, modified: 0, source: sourceB, sheetNames: sourceB.sheetNames }, "Orders", 0);
+		resetAnalysisState();
+		hideError();
+		renderSlots();
+		renderResults();
+		showToast("Demo reports loaded");
+	}
+
+	function resetAll() {
+		state.A = null;
+		state.B = null;
+		state.loading = { A: false, B: false };
+		resetAnalysisState();
+		hideError();
+		renderSlots();
+		renderResults();
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	}
+
+	function applyTheme(theme) {
+		document.documentElement.dataset.theme = theme;
+		const sun = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+		const moon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
+		$("#themeBtn").innerHTML = theme === "dark" ? `${sun}<span class="btn-label">Light</span>` : `${moon}<span class="btn-label">Dark</span>`;
+		try { localStorage.setItem("recon-theme", theme); } catch (_) {}
+	}
+
+	function initTheme() {
+		let theme = "dark";
+		try { theme = localStorage.getItem("recon-theme") || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"); } catch (_) {}
+		applyTheme(theme);
+	}
+
+	$("#themeBtn").addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+	$("#demoBtn").addEventListener("click", loadDemo);
+	$("#resetBtn").addEventListener("click", resetAll);
+	$("#swapBtn").addEventListener("click", () => {
+		if (!(state.A && state.B)) return;
+		[state.A, state.B] = [state.B, state.A];
+		resetAnalysisState();
+		renderSlots();
+		renderResults();
+		showToast("Reports swapped");
+	});
+	$("#closeKeyDialog").addEventListener("click", () => $("#keyDialog").close());
+	$("#cancelKeyDialog").addEventListener("click", () => $("#keyDialog").close());
+	$("#applyKeyDialog").addEventListener("click", () => {
+		if (!state.keyDraft.length) { $("#keyDialogHint").textContent = "Select at least one matching column."; return; }
+		state.options.keyIds = state.keyDraft.slice();
+		state.pages = { changes: 1, onlyA: 1, onlyB: 1 };
+		$("#keyDialog").close();
+		renderResults();
+	});
+	$("#keyDialog").addEventListener("click", event => { if (event.target === $("#keyDialog")) $("#keyDialog").close(); });
+
+	initTheme();
+	renderSlots();
+	wireDropZone("A");
+	wireDropZone("B");
+	renderResults();
+	if (window.location.hash === "#demo") loadDemo();
+	</script>
 </body>
 </html>
