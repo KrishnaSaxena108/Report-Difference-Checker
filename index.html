@@ -181,6 +181,9 @@
 		.hero h1 { margin: 0; font-size: clamp(30px, 5vw, 49px); line-height: 1.05; letter-spacing: -.048em; }
 		.hero h1 span { background: linear-gradient(105deg, var(--brand), var(--brand-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 		.hero p { max-width: 700px; margin: 16px auto 0; color: var(--muted); font-size: 15px; line-height: 1.7; }
+		.capability-bar { margin: 18px auto 0; display: flex; justify-content: center; flex-wrap: wrap; gap: 7px; }
+		.capability { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 7px; background: color-mix(in srgb, var(--surface) 78%, transparent); color: var(--muted); font: 600 10px/1 var(--mono); box-shadow: var(--shadow-sm); }
+		.capability i { width: 6px; height: 6px; border-radius: 99px; background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
 
 		.upload-grid { display: grid; grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr); align-items: stretch; gap: 10px; }
 		.file-slot {
@@ -210,6 +213,9 @@
 		.file-slot.b .drop-icon { color: var(--sky); background: var(--sky-soft); border-color: color-mix(in srgb, var(--sky) 18%, transparent); }
 		.drop-title { color: var(--text-soft); font-weight: 650; font-size: 13px; }
 		.drop-sub { margin-top: 4px; font-size: 11.5px; color: var(--dim); }
+		.load-progress { width: min(220px, 70vw); height: 5px; margin: 14px auto 0; overflow: hidden; border-radius: 99px; background: var(--surface-3); }
+		.load-progress i { display: block; width: var(--progress); height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand), var(--brand-2)); transition: width .12s linear; }
+		.file-slot.b .load-progress i { background: linear-gradient(90deg, var(--sky), var(--brand)); }
 		.file-card { flex: 1; display: flex; flex-direction: column; }
 		.file-title { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
 		.file-icon { width: 35px; height: 35px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 10px; background: var(--brand-soft); color: var(--brand); }
@@ -420,6 +426,7 @@
 			.topbar { margin-bottom: 32px; }
 			.hero { text-align: left; }
 			.hero p { margin-left: 0; }
+			.capability-bar { justify-content: flex-start; }
 			.upload-grid { grid-template-columns: 1fr; }
 			.bridge { flex-direction: row; height: 36px; }
 			.bridge-line { width: 38px; height: 1px; }
@@ -481,6 +488,12 @@
 			</div>
 			<h1>Find every report difference.<br><span>Understand exactly why.</span></h1>
 			<p>Compare CSV or Excel exports with composite keys, duplicate-safe row pairing, cell-level explanations, data-quality checks, and developer-friendly exports.</p>
+			<div class="capability-bar" aria-label="Capabilities">
+				<span class="capability"><i></i>1 GiB per report</span>
+				<span class="capability"><i></i>Streaming CSV parser</span>
+				<span class="capability"><i></i>Deterministic key matching</span>
+				<span class="capability"><i></i>CSV + JSON diff exports</span>
+			</div>
 		</section>
 
 		<div id="errorBox" class="notice error hidden" role="alert">
@@ -508,7 +521,7 @@
 		<main id="workspace" class="workspace hidden"></main>
 
 		<footer class="footer">
-			CSV works offline · Excel parsing uses SheetJS when available · nothing is sent to a server
+			CSV works offline · Excel parsing uses SheetJS when available · press / to search · large files work best as CSV in a 64-bit browser
 		</footer>
 	</div>
 
@@ -536,7 +549,10 @@
 	"use strict";
 
 	/* Application JavaScript is intentionally inline so this remains one portable HTML file. */
-	const MAX_FILE_BYTES = 120 * 1024 * 1024;
+	const MAX_FILE_BYTES = 1024 * 1024 * 1024;
+	const DELIMITED_EXTENSIONS = new Set(["csv", "tsv", "txt"]);
+	const DELIMITER_SAMPLE_BYTES = 256 * 1024;
+	const KEY_ANALYSIS_SAMPLE_ROWS = 50000;
 	const PAGE_SIZE = 50;
 	const RENDER_COLUMN_LIMIT = 18;
 	const GUESS_KEYS = ["id", "uuid", "uid", "key", "code", "sku", "employee id", "employee_id", "emp id", "emp_id", "order id", "order_id", "invoice id", "invoice_id", "reference", "reference no", "ref", "ref no", "ref_no"];
@@ -545,6 +561,7 @@
 		A: null,
 		B: null,
 		loading: { A: false, B: false },
+		loadingProgress: { A: 0, B: 0 },
 		options: {
 			matchMode: "key",
 			keyIds: [],
@@ -562,6 +579,11 @@
 		columnFilter: "all",
 		pages: { changes: 1, onlyA: 1, onlyB: 1 },
 		lastResult: null,
+		lastAnalysisSignature: "",
+		lastComputeMs: 0,
+		keyAnalysisCache: { signature: "", items: [] },
+		reportSequence: 0,
+		searchTimer: null,
 		keyDraft: [],
 		toastTimer: null
 	};
@@ -619,6 +641,10 @@
 
 	function normalizeHeader(value) {
 		return String(value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+	}
+
+	function relaxedHeader(value) {
+		return String(value ?? "").trim().toLowerCase().replace(/[_./-]+/g, " ").replace(/\s+/g, " ");
 	}
 
 	function normalizeCell(value, forKey = false) {
@@ -694,27 +720,92 @@
 		return rows;
 	}
 
-	async function readSource(file) {
-		if (file.size > MAX_FILE_BYTES) throw new Error("That file is larger than 120 MB. Export a smaller report or split it into sheets first.");
-		const extension = (file.name.split(".").pop() || "").toLowerCase();
-		if (["csv", "tsv", "txt"].includes(extension)) {
+	async function parseDelimitedStream(file, delimiter, onProgress) {
+		if (!file.stream || typeof TextDecoder === "undefined") {
 			const text = await file.text();
-			const delimiter = extension === "tsv" ? "\t" : detectDelimiter(text);
-			return { kind: "matrix", sheets: { Data: parseDelimited(text, delimiter) }, sheetNames: ["Data"], delimiter };
+			onProgress(1);
+			return parseDelimited(text, delimiter);
+		}
+		const reader = file.stream().getReader();
+		const decoder = new TextDecoder();
+		const rows = [];
+		let row = [];
+		let cell = "";
+		let quoted = false;
+		let quotePending = false;
+		let firstCharacter = true;
+		let bytesRead = 0;
+		let lastProgressAt = 0;
+		const consume = chunk => {
+			if (!chunk) return;
+			for (let index = 0; index < chunk.length; index++) {
+				const char = chunk[index];
+				if (firstCharacter) { firstCharacter = false; if (char === "\uFEFF") continue; }
+				if (quoted) {
+					if (quotePending) {
+						if (char === '"') { cell += '"'; quotePending = false; continue; }
+						quoted = false;
+						quotePending = false;
+					}
+					if (quoted) {
+						if (char === '"') quotePending = true;
+						else cell += char;
+						continue;
+					}
+				}
+				if (char === '"' && cell === "") quoted = true;
+				else if (char === delimiter) { row.push(cell); cell = ""; }
+				else if (char === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+				else if (char !== "\r") cell += char;
+			}
+		};
+		while (true) {
+			const { value, done } = await reader.read();
+			if (done) break;
+			bytesRead += value.byteLength;
+			consume(decoder.decode(value, { stream: true }));
+			const now = performance.now();
+			if (now - lastProgressAt > 120) {
+				lastProgressAt = now;
+				onProgress(Math.min(.99, bytesRead / Math.max(1, file.size)));
+				await new Promise(resolve => setTimeout(resolve, 0));
+			}
+		}
+		consume(decoder.decode());
+		if (quotePending) quoted = false;
+		if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+		onProgress(1);
+		return rows;
+	}
+
+	async function readSource(file, onProgress = () => {}) {
+		if (file.size > MAX_FILE_BYTES) throw new Error("That file is larger than 1 GiB. Each report can be up to 1 GiB.");
+		const extension = (file.name.split(".").pop() || "").toLowerCase();
+		if (DELIMITED_EXTENSIONS.has(extension)) {
+			const sample = await file.slice(0, DELIMITER_SAMPLE_BYTES).text();
+			const delimiter = extension === "tsv" ? "\t" : detectDelimiter(sample);
+			const rows = await parseDelimitedStream(file, delimiter, onProgress);
+			return { kind: "matrix", sheets: { Data: rows }, sheetNames: ["Data"], delimiter };
 		}
 		if (!["xlsx", "xls", "xlsm", "xlsb"].includes(extension)) throw new Error("Unsupported file type. Use .csv, .tsv, .xlsx, .xls, .xlsm, or .xlsb.");
 		if (typeof window.XLSX === "undefined") throw new Error("The Excel parser could not be loaded. Check your internet connection, or export the report as CSV and try again.");
+		onProgress(.1);
 		const buffer = await file.arrayBuffer();
-		const workbook = window.XLSX.read(buffer, { type: "array", cellDates: true, dense: false });
+		onProgress(.55);
+		const workbook = window.XLSX.read(buffer, { type: "array", cellDates: true, dense: true });
 		if (!workbook.SheetNames.length) throw new Error("This workbook has no readable sheets.");
-		return { kind: "xlsx", workbook, sheetNames: workbook.SheetNames.slice() };
+		onProgress(1);
+		return { kind: "xlsx", workbook, sheetNames: workbook.SheetNames.slice(), matrixCache: new Map() };
 	}
 
 	function sourceMatrix(source, sheetName) {
-		if (source.kind === "matrix") return (source.sheets[sheetName] || []).map(row => row.slice());
+		if (source.kind === "matrix") return source.sheets[sheetName] || [];
+		if (source.matrixCache && source.matrixCache.has(sheetName)) return source.matrixCache.get(sheetName);
 		const worksheet = source.workbook.Sheets[sheetName];
 		if (!worksheet) return [];
-		return window.XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: "", blankrows: true, dateNF: "yyyy-mm-dd" });
+		const matrix = window.XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: "", blankrows: true, dateNF: "yyyy-mm-dd" });
+		if (source.matrixCache) { source.matrixCache.clear(); source.matrixCache.set(sheetName, matrix); }
+		return matrix;
 	}
 
 	function autoHeaderIndex(matrix) {
@@ -766,10 +857,11 @@
 				occurrence
 			};
 		});
-		const rows = matrix.slice(boundedHeader + 1).map((cells, offset) => ({
-			cells: Array.from({ length: width }, (_, index) => cells[index] === undefined || cells[index] === null ? "" : cells[index]),
-			rowNumber: boundedHeader + offset + 2
-		})).filter(row => row.cells.some(value => String(value ?? "").trim() !== ""));
+		const rows = [];
+		for (let index = boundedHeader + 1; index < matrix.length; index++) {
+			const cells = matrix[index] || [];
+			if (cells.some(value => String(value ?? "").trim() !== "")) rows.push({ cells, rowNumber: index + 1 });
+		}
 
 		return {
 			...base,
@@ -788,12 +880,18 @@
 	async function loadFile(file, side) {
 		hideError();
 		state.loading[side] = true;
+		state.loadingProgress[side] = 0;
 		renderSlots();
 		try {
-			const source = await readSource(file);
+			let lastRenderedProgress = -1;
+			const source = await readSource(file, progress => {
+				const percent = Math.round(progress * 100);
+				state.loadingProgress[side] = percent;
+				if (percent >= lastRenderedProgress + 2 || percent === 100) { lastRenderedProgress = percent; renderSlot(side); }
+			});
 			const sheetName = source.sheetNames[0];
 			const matrix = sourceMatrix(source, sheetName);
-			const base = { fileName: file.name, size: file.size, modified: file.lastModified, source, sheetNames: source.sheetNames };
+			const base = { loadId: ++state.reportSequence, fileName: file.name, size: file.size, modified: file.lastModified, source, sheetNames: source.sheetNames };
 			state[side] = buildReport(base, sheetName, autoHeaderIndex(matrix));
 			resetAnalysisState();
 			showToast(`${file.name} loaded as Report ${side}`);
@@ -801,6 +899,7 @@
 			showError(error && error.message ? error.message : "That report could not be read.");
 		} finally {
 			state.loading[side] = false;
+			state.loadingProgress[side] = 0;
 			renderSlots();
 			renderResults();
 		}
@@ -842,6 +941,9 @@
 		state.query = "";
 		state.columnFilter = "all";
 		state.pages = { changes: 1, onlyA: 1, onlyB: 1 };
+		state.lastResult = null;
+		state.lastAnalysisSignature = "";
+		state.keyAnalysisCache = { signature: "", items: [] };
 	}
 
 	function renderSlot(side) {
@@ -851,9 +953,10 @@
 		const colorName = side === "A" ? "brand" : "sky";
 		let content;
 		if (loading) {
-			content = `<div class="drop-target"><div class="drop-content"><div class="drop-icon">${icon("settings", 20)}</div><div class="drop-title">Reading report…</div><div class="drop-sub">Parsing rows and column headers</div></div></div>`;
+			const progress = state.loadingProgress[side] || 0;
+			content = `<div class="drop-target"><div class="drop-content"><div class="drop-icon">${icon("settings", 20)}</div><div class="drop-title">Reading report… ${progress}%</div><div class="drop-sub">Streaming rows without loading the whole text file at once</div><div class="load-progress" aria-label="${progress}% loaded"><i style="--progress:${progress}%"></i></div></div></div>`;
 		} else if (!report) {
-			content = `<label class="drop-target"><div class="drop-content"><div class="drop-icon">${icon("upload", 20)}</div><div class="drop-title">Drop a spreadsheet here</div><div class="drop-sub">or click to browse · CSV, TSV, XLSX, XLS</div></div><input class="hidden file-input" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.xlsb" /></label>`;
+			content = `<label class="drop-target"><div class="drop-content"><div class="drop-icon">${icon("upload", 20)}</div><div class="drop-title">Drop a spreadsheet here</div><div class="drop-sub">Up to 1 GiB each · CSV/TSV recommended for very large reports</div></div><input class="hidden file-input" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.xlsb" /></label>`;
 		} else {
 			const sheetControl = report.sheetNames.length > 1 ? `<div><label class="field-label" for="sheet${side}">Worksheet</label><select class="select sheet-select" id="sheet${side}">${report.sheetNames.map(name => `<option value="${esc(name)}" ${name === report.sheetName ? "selected" : ""}>${esc(name)}</option>`).join("")}</select></div>` : `<div><span class="field-label">Worksheet</span><div class="select truncate" title="${esc(report.sheetName)}">${esc(report.sheetName)}</div></div>`;
 			const issueCount = report.headerIssues.blank.length + report.headerIssues.duplicates.length;
@@ -895,7 +998,7 @@
 
 	function getColumnMap() {
 		if (!state.A || !state.B) return { common: [], onlyA: [], onlyB: [] };
-		const keyFor = column => state.options.headerMode === "strict" ? column.sourceLabel : normalizeHeader(column.sourceLabel);
+		const keyFor = column => state.options.headerMode === "strict" ? column.sourceLabel : relaxedHeader(column.sourceLabel);
 		const groupsB = new Map();
 		state.B.columns.forEach(column => {
 			const key = keyFor(column);
@@ -928,22 +1031,46 @@
 	}
 
 	function keyRecommendations(common) {
-		return common.map(pair => {
-			const valuesA = state.A.rows.map(row => normalizeCell(row.cells[pair.indexA], true)).filter(Boolean);
-			const valuesB = state.B.rows.map(row => normalizeCell(row.cells[pair.indexB], true)).filter(Boolean);
+		const signature = JSON.stringify([
+			state.A.loadId, state.A.sheetName, state.A.headerIndex,
+			state.B.loadId, state.B.sheetName, state.B.headerIndex,
+			state.options.caseSensitive,
+			common.map(pair => pair.id)
+		]);
+		if (state.keyAnalysisCache.signature === signature) return state.keyAnalysisCache.items;
+		const sampleA = state.A.rows.slice(0, KEY_ANALYSIS_SAMPLE_ROWS);
+		const sampleB = state.B.rows.slice(0, KEY_ANALYSIS_SAMPLE_ROWS);
+		const items = common.map(pair => {
+			const valuesA = sampleA.map(row => normalizeCell(row.cells[pair.indexA], true)).filter(Boolean);
+			const valuesB = sampleB.map(row => normalizeCell(row.cells[pair.indexB], true)).filter(Boolean);
 			const setA = new Set(valuesA);
 			const setB = new Set(valuesB);
-			const coverageA = state.A.rows.length ? valuesA.length / state.A.rows.length : 0;
-			const coverageB = state.B.rows.length ? valuesB.length / state.B.rows.length : 0;
+			const coverageA = sampleA.length ? valuesA.length / sampleA.length : 0;
+			const coverageB = sampleB.length ? valuesB.length / sampleB.length : 0;
 			const uniqueA = valuesA.length ? setA.size / valuesA.length : 0;
 			const uniqueB = valuesB.length ? setB.size / valuesB.length : 0;
 			let intersection = 0;
 			setA.forEach(value => { if (setB.has(value)) intersection++; });
 			const overlap = Math.max(setA.size, setB.size) ? intersection / Math.max(setA.size, setB.size) : 0;
-			const guessed = GUESS_KEYS.includes(normalizeHeader(pair.columnA.sourceLabel));
+			const guessed = GUESS_KEYS.some(candidate => relaxedHeader(candidate) === relaxedHeader(pair.columnA.sourceLabel));
 			const score = (coverageA + coverageB) * .18 + (uniqueA + uniqueB) * .24 + overlap * .16 + (guessed ? .18 : 0);
 			return { pair, coverageA, coverageB, uniqueA, uniqueB, overlap, score, guessed };
 		}).sort((left, right) => right.score - left.score);
+		state.keyAnalysisCache = { signature, items };
+		return items;
+	}
+
+	function analysisSignature(mapping) {
+		return JSON.stringify([
+			state.A.loadId, state.A.sheetName, state.A.headerIndex,
+			state.B.loadId, state.B.sheetName, state.B.headerIndex,
+			mapping.common.map(pair => pair.id),
+			state.options.matchMode, state.options.keyIds,
+			state.options.headerMode, state.options.trimWhitespace,
+			state.options.collapseWhitespace, state.options.caseSensitive,
+			state.options.numericEquivalent, state.options.numericTolerance,
+			Array.from(state.options.ignoredColumns).sort()
+		]);
 	}
 
 	function syncColumnOptions(mapping) {
@@ -1044,10 +1171,16 @@
 		const keyPairs = state.options.matchMode === "key" ? mapping.common.filter(pair => state.options.keyIds.includes(pair.id)) : [];
 		const keyIds = new Set(keyPairs.map(pair => pair.id));
 		const comparePairs = mapping.common.filter(pair => !keyIds.has(pair.id) && !state.options.ignoredColumns.has(pair.id));
-		const matchedRows = [];
+		const changedRows = [];
+		let matchedRowCount = 0;
 		const onlyA = [];
 		const onlyB = [];
 		const quality = { duplicateGroupsA: [], duplicateGroupsB: [], blankKeysA: [], blankKeysB: [], pairingFallbacks: 0 };
+		const acceptMatchedPair = (rowA, rowB, displayKey, token) => {
+			const compared = compareRowPair(rowA, rowB, displayKey, token, comparePairs);
+			matchedRowCount++;
+			if (compared.changes.length) changedRows.push(compared);
+		};
 
 		if (state.options.matchMode === "key") {
 			if (!keyPairs.length) return { error: "Choose at least one common column as the matching key.", mapping, keyPairs, comparePairs };
@@ -1080,7 +1213,7 @@
 				if (!entriesA.length) { entriesB.forEach(entry => onlyB.push({ key: displayKey, row: entry.row, reason: "missing-key" })); continue; }
 				if (!entriesB.length) { entriesA.forEach(entry => onlyA.push({ key: displayKey, row: entry.row, reason: "missing-key" })); continue; }
 				const paired = pairRepeatedRows(entriesA, entriesB, comparePairs);
-				paired.pairs.forEach(([entryA, entryB]) => matchedRows.push(compareRowPair(entryA.row, entryB.row, displayKey, token, comparePairs)));
+				paired.pairs.forEach(([entryA, entryB]) => acceptMatchedPair(entryA.row, entryB.row, displayKey, token));
 				paired.extraA.forEach(entry => onlyA.push({ key: displayKey, row: entry.row, reason: "duplicate-surplus" }));
 				paired.extraB.forEach(entry => onlyB.push({ key: displayKey, row: entry.row, reason: "duplicate-surplus" }));
 			}
@@ -1090,23 +1223,22 @@
 				const rowA = state.A.rows[index];
 				const rowB = state.B.rows[index];
 				const displayKey = `Data row ${index + 1}`;
-				if (rowA && rowB) matchedRows.push(compareRowPair(rowA, rowB, displayKey, `position:${index}`, comparePairs));
+				if (rowA && rowB) acceptMatchedPair(rowA, rowB, displayKey, `position:${index}`);
 				else if (rowA) onlyA.push({ key: displayKey, row: rowA, reason: "extra-position" });
 				else if (rowB) onlyB.push({ key: displayKey, row: rowB, reason: "extra-position" });
 			}
 		}
 
-		const changedRows = matchedRows.filter(row => row.changes.length);
-		const perfectRows = matchedRows.length - changedRows.length;
+		const perfectRows = matchedRowCount - changedRows.length;
 		const changes = changedRows.flatMap(row => row.changes);
-		const totalRows = matchedRows.length + onlyA.length + onlyB.length;
+		const totalRows = matchedRowCount + onlyA.length + onlyB.length;
 		const score = totalRows ? Math.round(perfectRows / totalRows * 100) : 100;
-		const coverage = totalRows ? Math.round(matchedRows.length / totalRows * 100) : 100;
-		const comparedCells = matchedRows.length * comparePairs.length;
+		const coverage = totalRows ? Math.round(matchedRowCount / totalRows * 100) : 100;
+		const comparedCells = matchedRowCount * comparePairs.length;
 		const cellAccuracy = comparedCells ? Math.round((1 - changes.length / comparedCells) * 10000) / 100 : null;
 		const columnCounts = new Map();
 		changes.forEach(change => columnCounts.set(change.columnId, (columnCounts.get(change.columnId) || 0) + 1));
-		return { mapping, keyPairs, comparePairs, matchedRows, changedRows, perfectRows, changes, onlyA, onlyB, quality, score, coverage, cellAccuracy, totalRows, columnCounts };
+		return { mapping, keyPairs, comparePairs, matchedRowCount, changedRows, perfectRows, changes, onlyA, onlyB, quality, score, coverage, cellAccuracy, totalRows, columnCounts };
 	}
 
 	function verdictFor(result) {
@@ -1133,6 +1265,7 @@
 				</div></div>
 				${state.options.matchMode === "key" ? `<span class="divider-v"></span><div class="config-block"><span class="config-caption">Key</span><div class="key-chips">${keyChips || '<span class="muted">Not selected</span>'}</div><button class="btn small" id="editKeyBtn" type="button">Edit key</button><button class="btn small ghost" id="autoKeyBtn" type="button" title="Use the highest quality key candidate">Auto</button></div>` : `<span class="muted" style="font-size:11.5px">Rows are compared in their current order.</span>`}
 				<div class="config-spacer"></div>
+				<span class="tag" title="The last full comparison reused cached results until a rule, key, sheet, or report changes">${state.lastComputeMs < 1000 ? `${Math.round(state.lastComputeMs)} ms` : `${(state.lastComputeMs / 1000).toFixed(1)} s`} analysis</span>
 				<span class="tag">${fmt(result.comparePairs.length)} compared columns</span>
 				<span class="tag">${state.options.headerMode === "strict" ? "Exact" : "Relaxed"} headers</span>
 			</div>
@@ -1143,7 +1276,7 @@
 					${renderToggle("caseSensitive", "Case sensitive", "Distinguishes “Open” from “open”.")}
 					${renderToggle("numericEquivalent", "Numeric equivalence", "Treats 1,200.00 and 1200 as the same number.")}
 					<div class="rule-item"><label class="field-label" for="toleranceInput">Numeric tolerance</label><input class="input" id="toleranceInput" type="number" min="0" step="any" value="${esc(state.options.numericTolerance)}" ${state.options.numericEquivalent ? "" : "disabled"} /><div class="rule-help">Absolute allowed difference, for example 0.01.</div></div>
-					<div class="rule-item"><label class="field-label" for="headerModeSelect">Column header matching</label><select class="select" id="headerModeSelect"><option value="relaxed" ${state.options.headerMode === "relaxed" ? "selected" : ""}>Relaxed case + spacing</option><option value="strict" ${state.options.headerMode === "strict" ? "selected" : ""}>Exact header text</option></select><div class="rule-help">Relaxed mode maps “Order ID” to “ order id ”.</div></div>
+					<div class="rule-item"><label class="field-label" for="headerModeSelect">Column header matching</label><select class="select" id="headerModeSelect"><option value="relaxed" ${state.options.headerMode === "relaxed" ? "selected" : ""}>Relaxed case + separators</option><option value="strict" ${state.options.headerMode === "strict" ? "selected" : ""}>Exact header text</option></select><div class="rule-help">Maps “Order ID”, “order_id”, and “order-id” safely by occurrence.</div></div>
 				</div>
 			</details>
 		</section>`;
@@ -1174,7 +1307,7 @@
 				${statCard("Changed rows", result.changedRows.length, "var(--amber)", `${fmt(result.changes.length)} changed cells`)}
 				${statCard("Only in A", result.onlyA.length, "var(--rose)", state.A.fileName)}
 				${statCard("Only in B", result.onlyB.length, "var(--sky)", state.B.fileName)}
-				${statCard("Matched rows", result.matchedRows.length, "var(--text)", `${result.coverage}% coverage`)}
+				${statCard("Matched rows", result.matchedRowCount, "var(--text)", `${result.coverage}% coverage`)}
 				${statCard("Compared cols", result.comparePairs.length, "var(--brand)", `${result.mapping.common.length} common total`)}
 			</div>
 			<div class="proportion" aria-label="Row result proportions"><i style="width:${result.perfectRows / denominator * 100}%;background:var(--green)"></i><i style="width:${result.changedRows.length / denominator * 100}%;background:var(--amber)"></i><i style="width:${result.onlyA.length / denominator * 100}%;background:var(--rose)"></i><i style="width:${result.onlyB.length / denominator * 100}%;background:var(--sky)"></i></div>
@@ -1206,12 +1339,20 @@
 		const mapping = getColumnMap();
 		syncColumnOptions(mapping);
 		if (!mapping.common.length) {
-			workspace.innerHTML = `<div class="notice error">${icon("warning", 16)}<div><strong>No common columns were found.</strong><br>Check each header-row setting, select the correct worksheets, or switch column-header matching to relaxed mode.</div></div><section class="panel config-panel" style="margin-top:14px"><details class="rules" open><summary><span>${icon("settings", 13)} &nbsp;Column matching</span></summary><div class="rules-grid"><div class="rule-item"><label class="field-label" for="headerModeSelect">Column header matching</label><select class="select" id="headerModeSelect"><option value="relaxed" ${state.options.headerMode === "relaxed" ? "selected" : ""}>Relaxed case + spacing</option><option value="strict" ${state.options.headerMode === "strict" ? "selected" : ""}>Exact header text</option></select></div></div></details></section>`;
+			workspace.innerHTML = `<div class="notice error">${icon("warning", 16)}<div><strong>No common columns were found.</strong><br>Check each header-row setting, select the correct worksheets, or switch column-header matching to relaxed mode.</div></div><section class="panel config-panel" style="margin-top:14px"><details class="rules" open><summary><span>${icon("settings", 13)} &nbsp;Column matching</span></summary><div class="rules-grid"><div class="rule-item"><label class="field-label" for="headerModeSelect">Column header matching</label><select class="select" id="headerModeSelect"><option value="relaxed" ${state.options.headerMode === "relaxed" ? "selected" : ""}>Relaxed case + separators</option><option value="strict" ${state.options.headerMode === "strict" ? "selected" : ""}>Exact header text</option></select></div></div></details></section>`;
 			const headerMode = $("#headerModeSelect");
 			if (headerMode) headerMode.addEventListener("change", event => { state.options.headerMode = event.target.value; resetAnalysisState(); renderResults(); });
 			return;
 		}
-		const result = compute(mapping);
+		const signature = analysisSignature(mapping);
+		let result = state.lastAnalysisSignature === signature ? state.lastResult : null;
+		if (!result) {
+			const started = performance.now();
+			result = compute(mapping);
+			state.lastComputeMs = performance.now() - started;
+			state.lastAnalysisSignature = signature;
+			state.lastResult = result;
+		}
 		state.lastResult = result;
 		if (result.error) {
 			workspace.innerHTML = `${renderConfig(mapping, result)}<div class="notice error">${icon("warning", 16)}<span>${esc(result.error)}</span></div>`;
@@ -1389,7 +1530,8 @@
 		if (search) search.addEventListener("input", event => {
 			state.query = event.target.value;
 			if (["changes", "onlyA", "onlyB"].includes(state.activeTab)) state.pages[state.activeTab] = 1;
-			rerenderTabWithFocus(result);
+			clearTimeout(state.searchTimer);
+			state.searchTimer = setTimeout(() => rerenderTabWithFocus(result), 140);
 		});
 		const columnFilter = $("#columnFilter");
 		if (columnFilter) columnFilter.addEventListener("change", event => { state.columnFilter = event.target.value; state.pages.changes = 1; renderTabBody(result); });
@@ -1428,7 +1570,35 @@
 		if (/^[\t\r\n ]*(?:[=+@]|-(?!\d))/.test(text)) text = "'" + text;
 		return `"${text.replace(/"/g, '""')}"`;
 	}
-	function rowsToCsv(rows) { return "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n"); }
+	async function downloadCsvRows(rows, fileName) {
+		const mime = "text/csv;charset=utf-8";
+		if (typeof window.showSaveFilePicker === "function") {
+			try {
+				const handle = await window.showSaveFilePicker({ suggestedName: fileName, types: [{ description: "CSV file", accept: { "text/csv": [".csv"] } }] });
+				const writable = await handle.createWritable();
+				await writable.write("\uFEFF");
+				let batch = "";
+				for (const row of rows) {
+					batch += row.map(csvCell).join(",") + "\r\n";
+					if (batch.length >= 1024 * 1024) { await writable.write(batch); batch = ""; }
+				}
+				if (batch) await writable.write(batch);
+				await writable.close();
+				showToast(`${fileName} saved`);
+				return;
+			} catch (error) {
+				if (error && error.name === "AbortError") return;
+			}
+		}
+		const parts = ["\uFEFF"];
+		let batch = "";
+		for (const row of rows) {
+			batch += row.map(csvCell).join(",") + "\r\n";
+			if (batch.length >= 1024 * 1024) { parts.push(batch); batch = ""; }
+		}
+		if (batch) parts.push(batch);
+		downloadBlob(parts, mime, fileName);
+	}
 
 	function downloadBlob(content, type, fileName) {
 		const blob = new Blob([content], { type });
@@ -1443,19 +1613,23 @@
 		showToast(`${fileName} downloaded`);
 	}
 
-	function exportChanges(result, filtered = false) {
+	async function exportChanges(result, filtered = false) {
 		const changeRows = filtered ? currentChangedRows(result).flatMap(row => row.visibleChanges) : result.changes;
-		const rows = [["difference_type", "match_key", "report_a_row", "report_b_row", "column_a", "column_b", "value_a", "value_b"]];
-		changeRows.forEach(change => rows.push(["changed_cell", change.key, change.rowNumberA, change.rowNumberB, change.columnA, change.columnB, change.valueA, change.valueB]));
-		downloadBlob(rowsToCsv(rows), "text/csv;charset=utf-8", filtered ? "recon-filtered-changes.csv" : "recon-cell-differences.csv");
+		function* rows() {
+			yield ["difference_type", "match_key", "report_a_row", "report_b_row", "column_a", "column_b", "value_a", "value_b"];
+			for (const change of changeRows) yield ["changed_cell", change.key, change.rowNumberA, change.rowNumberB, change.columnA, change.columnB, change.valueA, change.valueB];
+		}
+		await downloadCsvRows(rows(), filtered ? "recon-filtered-changes.csv" : "recon-cell-differences.csv");
 	}
 
-	function exportOnly(result, side) {
+	async function exportOnly(result, side) {
 		const report = state[side];
 		const items = result[side === "A" ? "onlyA" : "onlyB"];
-		const rows = [["difference_type", "report", "reason", "match_key", "source_row", ...report.columns.map(column => column.label)]];
-		items.forEach(item => rows.push(["unmatched_row", side, reasonLabel(item.reason), item.key, item.row.rowNumber, ...report.columns.map(column => item.row.cells[column.index])]));
-		downloadBlob(rowsToCsv(rows), "text/csv;charset=utf-8", `recon-only-in-${side.toLowerCase()}.csv`);
+		function* rows() {
+			yield ["difference_type", "report", "reason", "match_key", "source_row", ...report.columns.map(column => column.label)];
+			for (const item of items) yield ["unmatched_row", side, reasonLabel(item.reason), item.key, item.row.rowNumber, ...report.columns.map(column => item.row.cells[column.index])];
+		}
+		await downloadCsvRows(rows(), `recon-only-in-${side.toLowerCase()}.csv`);
 	}
 
 	function summaryObject(result) {
@@ -1465,7 +1639,7 @@
 			reportB: { file: state.B.fileName, sheet: state.B.sheetName, headerRow: state.B.headerIndex + 1, rows: state.B.rows.length, columns: state.B.columns.length },
 			matching: { mode: state.options.matchMode, key: result.keyPairs.map(pair => pair.label), headerMode: state.options.headerMode },
 			rules: { trimWhitespace: state.options.trimWhitespace, collapseWhitespace: state.options.collapseWhitespace, caseSensitive: state.options.caseSensitive, numericEquivalent: state.options.numericEquivalent, numericTolerance: state.options.numericTolerance, ignoredColumns: result.mapping.common.filter(pair => state.options.ignoredColumns.has(pair.id)).map(pair => pair.label) },
-			summary: { reconciliationScore: result.score, rowCoverage: result.coverage, cellAccuracy: result.cellAccuracy, matchedRows: result.matchedRows.length, perfectRows: result.perfectRows, changedRows: result.changedRows.length, changedCells: result.changes.length, onlyInA: result.onlyA.length, onlyInB: result.onlyB.length },
+			summary: { reconciliationScore: result.score, rowCoverage: result.coverage, cellAccuracy: result.cellAccuracy, matchedRows: result.matchedRowCount, perfectRows: result.perfectRows, changedRows: result.changedRows.length, changedCells: result.changes.length, onlyInA: result.onlyA.length, onlyInB: result.onlyB.length },
 			quality: { duplicateKeyGroupsA: result.quality.duplicateGroupsA.length, duplicateKeyGroupsB: result.quality.duplicateGroupsB.length, blankKeysA: result.quality.blankKeysA.length, blankKeysB: result.quality.blankKeysB.length }
 		};
 	}
@@ -1481,11 +1655,11 @@
 		downloadBlob(JSON.stringify(payload, null, 2), "application/json", "recon-complete-diff.json");
 	}
 
-	function handleExport(type, result) {
-		if (type === "changes") exportChanges(result, false);
-		else if (type === "filteredChanges") exportChanges(result, true);
-		else if (type === "onlyA") exportOnly(result, "A");
-		else if (type === "onlyB") exportOnly(result, "B");
+	async function handleExport(type, result) {
+		if (type === "changes") await exportChanges(result, false);
+		else if (type === "filteredChanges") await exportChanges(result, true);
+		else if (type === "onlyA") await exportOnly(result, "A");
+		else if (type === "onlyB") await exportOnly(result, "B");
 		else if (type === "json") exportJson(result);
 	}
 
@@ -1541,8 +1715,8 @@
 		] };
 		const sourceA = { kind: "matrix", sheets: sheetsA, sheetNames: ["Orders"] };
 		const sourceB = { kind: "matrix", sheets: sheetsB, sheetNames: ["Orders"] };
-		state.A = buildReport({ fileName: "orders-before.csv", size: 0, modified: 0, source: sourceA, sheetNames: sourceA.sheetNames }, "Orders", 0);
-		state.B = buildReport({ fileName: "orders-after.csv", size: 0, modified: 0, source: sourceB, sheetNames: sourceB.sheetNames }, "Orders", 0);
+		state.A = buildReport({ loadId: ++state.reportSequence, fileName: "orders-before.csv", size: 0, modified: 0, source: sourceA, sheetNames: sourceA.sheetNames }, "Orders", 0);
+		state.B = buildReport({ loadId: ++state.reportSequence, fileName: "orders-after.csv", size: 0, modified: 0, source: sourceB, sheetNames: sourceB.sheetNames }, "Orders", 0);
 		resetAnalysisState();
 		hideError();
 		renderSlots();
@@ -1554,6 +1728,7 @@
 		state.A = null;
 		state.B = null;
 		state.loading = { A: false, B: false };
+		state.loadingProgress = { A: 0, B: 0 };
 		resetAnalysisState();
 		hideError();
 		renderSlots();
@@ -1596,6 +1771,12 @@
 		renderResults();
 	});
 	$("#keyDialog").addEventListener("click", event => { if (event.target === $("#keyDialog")) $("#keyDialog").close(); });
+	document.addEventListener("keydown", event => {
+		if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey) return;
+		if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "")) return;
+		const search = $("#searchInput");
+		if (search) { event.preventDefault(); search.focus(); search.select(); }
+	});
 
 	initTheme();
 	renderSlots();
