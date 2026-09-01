@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+<!-- StarRocks ↔ MySQL Reconciler · portable local-first build -->
 <html lang="en" data-theme="dark">
 <head>
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<meta name="color-scheme" content="dark light" />
-	<title>Recon — Spreadsheet Difference Inspector</title>
+	<title>SR ↔ MySQL Recon — Database Export Comparator</title>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 	<style>
 		:root {
@@ -246,8 +247,13 @@
 		.bridge button:hover:not(:disabled) { color: var(--text); border-color: var(--brand); }
 		.bridge button:disabled { opacity: .35; cursor: default; }
 
-		.privacy-strip { margin: 14px 0 30px; display: flex; justify-content: center; align-items: center; gap: 9px; color: var(--dim); font: 500 11px/1.4 var(--mono); }
+		.privacy-strip { margin: 14px 0 11px; display: flex; justify-content: center; align-items: center; gap: 9px; color: var(--dim); font: 500 11px/1.4 var(--mono); }
 		.privacy-strip svg { color: var(--green); }
+		.export-contract { margin: 0 0 30px; padding: 11px; display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); gap: 9px; align-items: stretch; border: 1px solid var(--border); border-radius: 12px; background: color-mix(in srgb, var(--surface) 72%, transparent); box-shadow: var(--shadow-sm); }
+		.contract-title { padding: 7px 10px; display: grid; align-content: center; border-right: 1px solid var(--border); color: var(--brand); font: 700 9px/1.45 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+		.contract-item { padding: 8px 10px; border-radius: 8px; background: var(--surface-2); }
+		.contract-item code { display: block; margin-bottom: 4px; color: var(--text-soft); font: 650 10px/1.25 var(--mono); }
+		.contract-item span { color: var(--dim); font-size: 10px; line-height: 1.35; }
 		.notice { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius); padding: 13px 15px; display: flex; gap: 10px; align-items: flex-start; color: var(--muted); box-shadow: var(--shadow-sm); }
 		.notice.error { border-color: color-mix(in srgb, var(--rose) 38%, var(--border)); background: var(--rose-soft); color: var(--rose); margin-bottom: 15px; }
 		.notice.warn { border-color: color-mix(in srgb, var(--amber) 30%, var(--border)); background: var(--amber-soft); color: var(--amber); }
@@ -350,8 +356,9 @@
 		.cell-diff:last-child { border-bottom: 0; }
 		.cell-name { padding: 11px 13px; color: var(--muted); font: 600 10.5px/1.4 var(--mono); background: color-mix(in srgb, var(--surface-3) 60%, transparent); }
 		.cell-value { padding: 11px 13px; min-width: 0; font: 500 11px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
-		.cell-value.a { color: var(--rose); background: var(--rose-soft); }
-		.cell-value.b { color: var(--green); background: var(--green-soft); }
+		.value-source { display: block; margin-bottom: 5px; color: var(--dim); font: 700 8px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; }
+		.cell-value.a { color: var(--brand); background: var(--brand-soft); }
+		.cell-value.b { color: var(--sky); background: var(--sky-soft); }
 		.cell-arrow { display: grid; place-items: center; color: var(--faint); background: var(--surface-2); }
 		.empty-value { color: var(--dim); font-style: italic; }
 
@@ -361,8 +368,8 @@
 		td { padding: 9px 11px; border-bottom: 1px solid var(--border); color: var(--text-soft); vertical-align: top; max-width: 360px; overflow-wrap: anywhere; }
 		tbody tr:last-child td { border-bottom: 0; }
 		tbody tr:hover td { background: color-mix(in srgb, var(--surface-hover) 62%, transparent); }
-		.cell-a { color: var(--rose); background: var(--rose-soft); }
-		.cell-b { color: var(--green); background: var(--green-soft); }
+		.cell-a { color: var(--brand); background: var(--brand-soft); }
+		.cell-b { color: var(--sky); background: var(--sky-soft); }
 		.key-cell { color: var(--brand); font-weight: 650; }
 		.status-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 6px; border-radius: 5px; font: 650 9px/1 var(--mono); white-space: nowrap; }
 		.status-pill.green { color: var(--green); background: var(--green-soft); }
@@ -428,6 +435,8 @@
 			.hero p { margin-left: 0; }
 			.capability-bar { justify-content: flex-start; }
 			.upload-grid { grid-template-columns: 1fr; }
+			.export-contract { grid-template-columns: 1fr; }
+			.contract-title { border-right: 0; border-bottom: 1px solid var(--border); }
 			.bridge { flex-direction: row; height: 36px; }
 			.bridge-line { width: 38px; height: 1px; }
 			.summary-top { grid-template-columns: auto minmax(0, 1fr); }
@@ -464,16 +473,16 @@
 					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>
 				</div>
 				<div class="truncate">
-					<div class="brand-name">recon</div>
-					<div class="brand-path">spreadsheet://difference-inspector</div>
+					<div class="brand-name">sr_mysql_recon</div>
+					<div class="brand-path">database://consistency-inspector</div>
 				</div>
 			</div>
 			<div class="top-actions">
-				<button class="btn ghost" id="demoBtn" type="button" title="Load example reports">
+				<button class="btn ghost" id="demoBtn" type="button" title="Load example database extracts">
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5M8 17h7"/></svg>
 					<span class="btn-label">Try demo</span>
 				</button>
-				<button class="btn ghost hidden" id="resetBtn" type="button" title="Clear both reports">
+				<button class="btn ghost hidden" id="resetBtn" type="button" title="Clear both database extracts">
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
 					<span class="btn-label">Start over</span>
 				</button>
@@ -484,15 +493,15 @@
 		<section class="hero">
 			<div class="eyebrow">
 				<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4L19 6"/></svg>
-				Local-first reconciliation
+				StarRocks ↔ MySQL · local-first
 			</div>
-			<h1>Find every report difference.<br><span>Understand exactly why.</span></h1>
-			<p>Compare CSV or Excel exports with composite keys, duplicate-safe row pairing, cell-level explanations, data-quality checks, and developer-friendly exports.</p>
+			<h1>Prove data consistency.<br><span>Trace every mismatch.</span></h1>
+			<p>Compare StarRocks and MySQL query exports using primary or composite keys, duplicate-safe pairing, schema-drift diagnostics, normalized value rules, and audit-ready developer exports.</p>
 			<div class="capability-bar" aria-label="Capabilities">
 				<span class="capability"><i></i>1 GiB per report</span>
 				<span class="capability"><i></i>Streaming CSV parser</span>
-				<span class="capability"><i></i>Deterministic key matching</span>
-				<span class="capability"><i></i>CSV + JSON diff exports</span>
+				<span class="capability"><i></i>PK-aware hash matching</span>
+				<span class="capability"><i></i>Schema + row diagnostics</span>
 			</div>
 		</section>
 
@@ -501,11 +510,11 @@
 			<span id="errorMessage"></span>
 		</div>
 
-		<section class="upload-grid" aria-label="Report files">
+		<section class="upload-grid" aria-label="StarRocks and MySQL export files">
 			<div class="file-slot a" id="slotA"></div>
 			<div class="bridge" aria-hidden="false">
 				<span class="bridge-line"></span>
-				<button id="swapBtn" type="button" title="Swap Report A and Report B" disabled>
+				<button id="swapBtn" type="button" title="Swap the loaded StarRocks and MySQL extracts" disabled>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 3l4 4-4 4M20 7H5M8 21l-4-4 4-4M4 17h15"/></svg>
 				</button>
 				<span class="bridge-line"></span>
@@ -515,21 +524,27 @@
 
 		<div class="privacy-strip">
 			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-			Files are processed in this tab and are never uploaded
+			Database exports stay in this tab and are never uploaded
 		</div>
+		<section class="export-contract" aria-label="Recommended database export contract">
+			<div class="contract-title">Export<br>contract</div>
+			<div class="contract-item"><code>01 / stable_pk</code><span>Include the same primary or composite key in both SELECT lists.</span></div>
+			<div class="contract-item"><code>02 / same_projection</code><span>Use matching aliases and a consistent snapshot boundary.</span></div>
+			<div class="contract-item"><code>03 / explicit_order</code><span>Add ORDER BY to both queries when using position mode.</span></div>
+		</section>
 
 		<main id="workspace" class="workspace hidden"></main>
 
 		<footer class="footer">
-			CSV works offline · Excel parsing uses SheetJS when available · press / to search · large files work best as CSV in a 64-bit browser
+			Optimized for StarRocks and MySQL SELECT exports · press / to search · large datasets work best as CSV in a 64-bit browser
 		</footer>
 	</div>
 
 	<dialog id="keyDialog" aria-labelledby="keyDialogTitle">
 		<div class="dialog-head">
 			<div>
-				<h2 id="keyDialogTitle">Choose matching key</h2>
-				<p>Select one unique identifier or combine multiple columns into a composite key.</p>
+				<h2 id="keyDialogTitle">Choose primary / composite key</h2>
+				<p>Select the database key used to align StarRocks rows with MySQL rows.</p>
 			</div>
 			<button class="icon-btn" id="closeKeyDialog" type="button" aria-label="Close dialog">×</button>
 		</div>
@@ -555,7 +570,12 @@
 	const KEY_ANALYSIS_SAMPLE_ROWS = 50000;
 	const PAGE_SIZE = 50;
 	const RENDER_COLUMN_LIMIT = 18;
-	const GUESS_KEYS = ["id", "uuid", "uid", "key", "code", "sku", "employee id", "employee_id", "emp id", "emp_id", "order id", "order_id", "invoice id", "invoice_id", "reference", "reference no", "ref", "ref no", "ref_no"];
+	const GUESS_KEYS = ["id", "pk", "uuid", "uid", "key", "code", "sku", "employee id", "employee_id", "emp id", "emp_id", "order id", "order_id", "invoice id", "invoice_id", "reference", "reference no", "ref", "ref no", "ref_no"];
+	const SOURCES = {
+		A: { name: "StarRocks", slug: "starrocks", rowLabel: "SR", color: "brand" },
+		B: { name: "MySQL", slug: "mysql", rowLabel: "MY", color: "sky" }
+	};
+	const sourceFor = side => SOURCES[side];
 
 	const state = {
 		A: null,
@@ -571,6 +591,7 @@
 			caseSensitive: false,
 			numericEquivalent: true,
 			numericTolerance: 0,
+			nullEquivalent: false,
 			ignoredColumns: new Set()
 		},
 		activeTab: "changes",
@@ -608,7 +629,8 @@
 			file: '<path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5M9 13h6M9 17h6"/>',
 			upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
 			arrow: '<path d="M5 12h14M14 7l5 5-5 5"/>',
-			settings: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>'
+			settings: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+			database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/>'
 		};
 		return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ""}</svg>`;
 	}
@@ -664,9 +686,14 @@
 	}
 
 	function valuesEqual(valueA, valueB) {
+		if (valueA === valueB) return true;
 		const a = normalizeCell(valueA);
 		const b = normalizeCell(valueB);
 		if (a === b) return true;
+		if (state.options.nullEquivalent) {
+			const nullLike = value => value === "" || value === "null" || value === "\\n";
+			if (nullLike(a) && nullLike(b)) return true;
+		}
 		if (!state.options.numericEquivalent) return false;
 		const numberA = parseStrictNumber(a);
 		const numberB = parseStrictNumber(b);
@@ -779,7 +806,7 @@
 	}
 
 	async function readSource(file, onProgress = () => {}) {
-		if (file.size > MAX_FILE_BYTES) throw new Error("That file is larger than 1 GiB. Each report can be up to 1 GiB.");
+		if (file.size > MAX_FILE_BYTES) throw new Error("That file is larger than 1 GiB. Each database export can be up to 1 GiB.");
 		const extension = (file.name.split(".").pop() || "").toLowerCase();
 		if (DELIMITED_EXTENSIONS.has(extension)) {
 			const sample = await file.slice(0, DELIMITER_SAMPLE_BYTES).text();
@@ -894,9 +921,9 @@
 			const base = { loadId: ++state.reportSequence, fileName: file.name, size: file.size, modified: file.lastModified, source, sheetNames: source.sheetNames };
 			state[side] = buildReport(base, sheetName, autoHeaderIndex(matrix));
 			resetAnalysisState();
-			showToast(`${file.name} loaded as Report ${side}`);
+			showToast(`${sourceFor(side).name} extract loaded: ${file.name}`);
 		} catch (error) {
-			showError(error && error.message ? error.message : "That report could not be read.");
+			showError(error && error.message ? error.message : `The ${sourceFor(side).name} extract could not be read.`);
 		} finally {
 			state.loading[side] = false;
 			state.loadingProgress[side] = 0;
@@ -950,23 +977,24 @@
 		const slot = $("#slot" + side);
 		const report = state[side];
 		const loading = state.loading[side];
-		const colorName = side === "A" ? "brand" : "sky";
+		const source = sourceFor(side);
+		const colorName = source.color;
 		let content;
 		if (loading) {
 			const progress = state.loadingProgress[side] || 0;
-			content = `<div class="drop-target"><div class="drop-content"><div class="drop-icon">${icon("settings", 20)}</div><div class="drop-title">Reading report… ${progress}%</div><div class="drop-sub">Streaming rows without loading the whole text file at once</div><div class="load-progress" aria-label="${progress}% loaded"><i style="--progress:${progress}%"></i></div></div></div>`;
+			content = `<div class="drop-target"><div class="drop-content"><div class="drop-icon">${icon("database", 20)}</div><div class="drop-title">Parsing ${source.name} extract… ${progress}%</div><div class="drop-sub">Streaming rows with bounded parser overhead</div><div class="load-progress" aria-label="${progress}% loaded"><i style="--progress:${progress}%"></i></div></div></div>`;
 		} else if (!report) {
-			content = `<label class="drop-target"><div class="drop-content"><div class="drop-icon">${icon("upload", 20)}</div><div class="drop-title">Drop a spreadsheet here</div><div class="drop-sub">Up to 1 GiB each · CSV/TSV recommended for very large reports</div></div><input class="hidden file-input" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.xlsb" /></label>`;
+			content = `<label class="drop-target"><div class="drop-content"><div class="drop-icon">${icon("database", 20)}</div><div class="drop-title">Drop ${source.name} query export</div><div class="drop-sub">Up to 1 GiB · CSV/TSV preferred · Excel supported</div></div><input class="hidden file-input" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.xlsb" /></label>`;
 		} else {
 			const sheetControl = report.sheetNames.length > 1 ? `<div><label class="field-label" for="sheet${side}">Worksheet</label><select class="select sheet-select" id="sheet${side}">${report.sheetNames.map(name => `<option value="${esc(name)}" ${name === report.sheetName ? "selected" : ""}>${esc(name)}</option>`).join("")}</select></div>` : `<div><span class="field-label">Worksheet</span><div class="select truncate" title="${esc(report.sheetName)}">${esc(report.sheetName)}</div></div>`;
 			const issueCount = report.headerIssues.blank.length + report.headerIssues.duplicates.length;
 			content = `<div class="file-card">
-				<div class="file-title"><div class="file-icon">${icon("file", 17)}</div><div style="min-width:0"><div class="file-name">${esc(report.fileName)}</div><div class="file-meta">${formatBytes(report.size)}${report.modified ? ` · modified ${new Date(report.modified).toLocaleDateString()}` : ""}</div></div></div>
+				<div class="file-title"><div class="file-icon">${icon("database", 17)}</div><div style="min-width:0"><div class="file-name">${esc(report.fileName)}</div><div class="file-meta">${source.name} · ${formatBytes(report.size)}${report.modified ? ` · modified ${new Date(report.modified).toLocaleDateString()}` : ""}</div></div></div>
 				<div class="file-controls">${sheetControl}<div><label class="field-label" for="header${side}">Header row</label><input class="input header-input" id="header${side}" type="number" min="1" max="${Math.max(1, report.matrixLength)}" value="${report.headerIndex + 1}" /></div></div>
 				<div class="file-footer"><div class="file-stats"><span><strong>${fmt(report.rows.length)}</strong> rows</span><span><strong>${fmt(report.columns.length)}</strong> cols</span>${issueCount ? `<span style="color:var(--amber)"><strong>${issueCount}</strong> header flags</span>` : ""}</div><label class="text-action">Replace<input class="hidden file-input" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.xlsb" /></label></div>
 			</div>`;
 		}
-		slot.innerHTML = `<div class="slot-inner"><div class="slot-label"><span class="slot-label-main"><i class="slot-dot"></i>Report ${side}</span>${report ? `<button class="text-action remove-report" type="button" aria-label="Remove Report ${side}" style="color:var(--${colorName})">Remove</button>` : ""}</div>${content}</div>`;
+		slot.innerHTML = `<div class="slot-inner"><div class="slot-label"><span class="slot-label-main"><i class="slot-dot"></i>${source.name} source</span>${report ? `<button class="text-action remove-report" type="button" aria-label="Remove ${source.name} extract" style="color:var(--${colorName})">Remove</button>` : ""}</div>${content}</div>`;
 		const input = $(".file-input", slot);
 		if (input) input.addEventListener("change", event => { if (event.target.files && event.target.files[0]) loadFile(event.target.files[0], side); });
 		const sheet = $(".sheet-select", slot);
@@ -1038,8 +1066,15 @@
 			common.map(pair => pair.id)
 		]);
 		if (state.keyAnalysisCache.signature === signature) return state.keyAnalysisCache.items;
-		const sampleA = state.A.rows.slice(0, KEY_ANALYSIS_SAMPLE_ROWS);
-		const sampleB = state.B.rows.slice(0, KEY_ANALYSIS_SAMPLE_ROWS);
+		const sampleRows = rows => {
+			if (rows.length <= KEY_ANALYSIS_SAMPLE_ROWS) return rows;
+			const sample = new Array(KEY_ANALYSIS_SAMPLE_ROWS);
+			const step = (rows.length - 1) / (KEY_ANALYSIS_SAMPLE_ROWS - 1);
+			for (let index = 0; index < sample.length; index++) sample[index] = rows[Math.floor(index * step)];
+			return sample;
+		};
+		const sampleA = sampleRows(state.A.rows);
+		const sampleB = sampleRows(state.B.rows);
 		const items = common.map(pair => {
 			const valuesA = sampleA.map(row => normalizeCell(row.cells[pair.indexA], true)).filter(Boolean);
 			const valuesB = sampleB.map(row => normalizeCell(row.cells[pair.indexB], true)).filter(Boolean);
@@ -1053,7 +1088,7 @@
 			setA.forEach(value => { if (setB.has(value)) intersection++; });
 			const overlap = Math.max(setA.size, setB.size) ? intersection / Math.max(setA.size, setB.size) : 0;
 			const guessed = GUESS_KEYS.some(candidate => relaxedHeader(candidate) === relaxedHeader(pair.columnA.sourceLabel));
-			const score = (coverageA + coverageB) * .18 + (uniqueA + uniqueB) * .24 + overlap * .16 + (guessed ? .18 : 0);
+			const score = (coverageA + coverageB) * .18 + (uniqueA + uniqueB) * .24 + overlap * .16 + (guessed ? .30 : 0);
 			return { pair, coverageA, coverageB, uniqueA, uniqueB, overlap, score, guessed };
 		}).sort((left, right) => right.score - left.score);
 		state.keyAnalysisCache = { signature, items };
@@ -1068,7 +1103,7 @@
 			state.options.matchMode, state.options.keyIds,
 			state.options.headerMode, state.options.trimWhitespace,
 			state.options.collapseWhitespace, state.options.caseSensitive,
-			state.options.numericEquivalent, state.options.numericTolerance,
+			state.options.numericEquivalent, state.options.numericTolerance, state.options.nullEquivalent,
 			Array.from(state.options.ignoredColumns).sort()
 		]);
 	}
@@ -1086,9 +1121,9 @@
 	function keyDescriptor(row, side, keyPairs) {
 		const values = keyPairs.map(pair => row.cells[side === "A" ? pair.indexA : pair.indexB]);
 		const normalized = values.map(value => normalizeCell(value, true));
-		if (normalized.every(value => value === "")) return { token: null, display: "(blank key)", values };
+		if (normalized.every(value => value === "")) return { token: null, display: "(null primary key)" };
 		const display = values.length === 1 ? String(values[0] ?? "") || "(blank)" : values.map((value, index) => `${keyPairs[index].columnA.sourceLabel}=${String(value ?? "") || "(blank)"}`).join(" · ");
-		return { token: JSON.stringify(normalized), display, values };
+		return { token: JSON.stringify(normalized), display };
 	}
 
 	function rowFingerprint(row, side, comparePairs) {
@@ -1106,17 +1141,21 @@
 		const unmatchedA = new Set(entriesA.map((_, index) => index));
 		const unmatchedB = new Set(entriesB.map((_, index) => index));
 		const fingerprintB = new Map();
-		entriesB.forEach((entry, index) => {
-			const fingerprint = rowFingerprint(entry.row, "B", comparePairs);
+		const fingerprintCursor = new Map();
+		entriesB.forEach((row, index) => {
+			const fingerprint = rowFingerprint(row, "B", comparePairs);
 			if (!fingerprintB.has(fingerprint)) fingerprintB.set(fingerprint, []);
 			fingerprintB.get(fingerprint).push(index);
 		});
-		entriesA.forEach((entryA, indexA) => {
-			const fingerprint = rowFingerprint(entryA.row, "A", comparePairs);
+		entriesA.forEach((rowA, indexA) => {
+			const fingerprint = rowFingerprint(rowA, "A", comparePairs);
 			const candidates = fingerprintB.get(fingerprint) || [];
-			const indexB = candidates.find(candidate => unmatchedB.has(candidate));
+			let cursor = fingerprintCursor.get(fingerprint) || 0;
+			while (cursor < candidates.length && !unmatchedB.has(candidates[cursor])) cursor++;
+			const indexB = candidates[cursor];
 			if (indexB === undefined) return;
-			pairs.push([entryA, entriesB[indexB]]);
+			fingerprintCursor.set(fingerprint, cursor + 1);
+			pairs.push([rowA, entriesB[indexB]]);
 			unmatchedA.delete(indexA);
 			unmatchedB.delete(indexB);
 		});
@@ -1129,7 +1168,7 @@
 			let bestScore = Infinity;
 			if (remainingA.length * remainingB.size <= 3600) {
 				for (const indexB of remainingB) {
-					const score = rowMismatchCount(entriesA[indexA].row, entriesB[indexB].row, comparePairs);
+					const score = rowMismatchCount(entriesA[indexA], entriesB[indexB], comparePairs);
 					if (score < bestScore) { bestScore = score; bestIndex = indexB; if (score === 0) break; }
 				}
 			} else bestIndex = remainingB.values().next().value;
@@ -1141,8 +1180,8 @@
 		}
 		return {
 			pairs,
-			extraA: Array.from(unmatchedA).map(index => entriesA[index]),
-			extraB: Array.from(remainingB).map(index => entriesB[index])
+			extraA: Array.from(unmatchedA, index => entriesA[index]),
+			extraB: Array.from(remainingB, index => entriesB[index])
 		};
 	}
 
@@ -1172,6 +1211,8 @@
 		const keyIds = new Set(keyPairs.map(pair => pair.id));
 		const comparePairs = mapping.common.filter(pair => !keyIds.has(pair.id) && !state.options.ignoredColumns.has(pair.id));
 		const changedRows = [];
+		const columnCounts = new Map();
+		let changedCellCount = 0;
 		let matchedRowCount = 0;
 		const onlyA = [];
 		const onlyB = [];
@@ -1179,20 +1220,24 @@
 		const acceptMatchedPair = (rowA, rowB, displayKey, token) => {
 			const compared = compareRowPair(rowA, rowB, displayKey, token, comparePairs);
 			matchedRowCount++;
-			if (compared.changes.length) changedRows.push(compared);
+			if (compared.changes.length) {
+				changedRows.push(compared);
+				changedCellCount += compared.changes.length;
+				for (const change of compared.changes) columnCounts.set(change.columnId, (columnCounts.get(change.columnId) || 0) + 1);
+			}
 		};
 
 		if (state.options.matchMode === "key") {
-			if (!keyPairs.length) return { error: "Choose at least one common column as the matching key.", mapping, keyPairs, comparePairs };
+			if (!keyPairs.length) return { error: "Choose at least one shared column as the primary or composite key.", mapping, keyPairs, comparePairs };
 			const buildGroups = (report, side) => {
 				const groups = new Map();
 				const blanks = [];
 				report.rows.forEach(row => {
 					const descriptor = keyDescriptor(row, side, keyPairs);
-					const entry = { row, descriptor };
-					if (descriptor.token === null) { blanks.push(entry); return; }
-					if (!groups.has(descriptor.token)) groups.set(descriptor.token, []);
-					groups.get(descriptor.token).push(entry);
+					if (descriptor.token === null) { blanks.push(row); return; }
+					let group = groups.get(descriptor.token);
+					if (!group) { group = { display: descriptor.display, entries: [] }; groups.set(descriptor.token, group); }
+					group.entries.push(row);
 				});
 				return { groups, blanks };
 			};
@@ -1200,22 +1245,25 @@
 			const groupB = buildGroups(state.B, "B");
 			quality.blankKeysA = groupA.blanks;
 			quality.blankKeysB = groupB.blanks;
-			groupA.blanks.forEach(entry => onlyA.push({ key: `(blank key) · row ${entry.row.rowNumber}`, row: entry.row, reason: "blank-key" }));
-			groupB.blanks.forEach(entry => onlyB.push({ key: `(blank key) · row ${entry.row.rowNumber}`, row: entry.row, reason: "blank-key" }));
-			for (const [token, entries] of groupA.groups) if (entries.length > 1) quality.duplicateGroupsA.push({ token, key: entries[0].descriptor.display, entries });
-			for (const [token, entries] of groupB.groups) if (entries.length > 1) quality.duplicateGroupsB.push({ token, key: entries[0].descriptor.display, entries });
+			groupA.blanks.forEach(row => onlyA.push({ key: `(null PK) · row ${row.rowNumber}`, row, reason: "blank-key" }));
+			groupB.blanks.forEach(row => onlyB.push({ key: `(null PK) · row ${row.rowNumber}`, row, reason: "blank-key" }));
+			for (const [token, group] of groupA.groups) if (group.entries.length > 1) quality.duplicateGroupsA.push({ token, key: group.display, entries: group.entries });
+			for (const [token, group] of groupB.groups) if (group.entries.length > 1) quality.duplicateGroupsB.push({ token, key: group.display, entries: group.entries });
 
-			const tokens = [...groupA.groups.keys(), ...Array.from(groupB.groups.keys()).filter(token => !groupA.groups.has(token))];
-			for (const token of tokens) {
-				const entriesA = groupA.groups.get(token) || [];
-				const entriesB = groupB.groups.get(token) || [];
-				const displayKey = (entriesA[0] || entriesB[0]).descriptor.display;
-				if (!entriesA.length) { entriesB.forEach(entry => onlyB.push({ key: displayKey, row: entry.row, reason: "missing-key" })); continue; }
-				if (!entriesB.length) { entriesA.forEach(entry => onlyA.push({ key: displayKey, row: entry.row, reason: "missing-key" })); continue; }
+			for (const [token, sourceGroup] of groupA.groups) {
+				const targetGroup = groupB.groups.get(token);
+				const entriesA = sourceGroup.entries;
+				const displayKey = sourceGroup.display;
+				if (!targetGroup) { entriesA.forEach(row => onlyA.push({ key: displayKey, row, reason: "missing-key" })); continue; }
+				const entriesB = targetGroup.entries;
 				const paired = pairRepeatedRows(entriesA, entriesB, comparePairs);
-				paired.pairs.forEach(([entryA, entryB]) => acceptMatchedPair(entryA.row, entryB.row, displayKey, token));
-				paired.extraA.forEach(entry => onlyA.push({ key: displayKey, row: entry.row, reason: "duplicate-surplus" }));
-				paired.extraB.forEach(entry => onlyB.push({ key: displayKey, row: entry.row, reason: "duplicate-surplus" }));
+				paired.pairs.forEach(([rowA, rowB]) => acceptMatchedPair(rowA, rowB, displayKey, token));
+				paired.extraA.forEach(row => onlyA.push({ key: displayKey, row, reason: "duplicate-surplus" }));
+				paired.extraB.forEach(row => onlyB.push({ key: displayKey, row, reason: "duplicate-surplus" }));
+			}
+			for (const [token, targetGroup] of groupB.groups) {
+				if (groupA.groups.has(token)) continue;
+				targetGroup.entries.forEach(row => onlyB.push({ key: targetGroup.display, row, reason: "missing-key" }));
 			}
 		} else {
 			const maximum = Math.max(state.A.rows.length, state.B.rows.length);
@@ -1230,23 +1278,20 @@
 		}
 
 		const perfectRows = matchedRowCount - changedRows.length;
-		const changes = changedRows.flatMap(row => row.changes);
 		const totalRows = matchedRowCount + onlyA.length + onlyB.length;
 		const score = totalRows ? Math.round(perfectRows / totalRows * 100) : 100;
 		const coverage = totalRows ? Math.round(matchedRowCount / totalRows * 100) : 100;
 		const comparedCells = matchedRowCount * comparePairs.length;
-		const cellAccuracy = comparedCells ? Math.round((1 - changes.length / comparedCells) * 10000) / 100 : null;
-		const columnCounts = new Map();
-		changes.forEach(change => columnCounts.set(change.columnId, (columnCounts.get(change.columnId) || 0) + 1));
-		return { mapping, keyPairs, comparePairs, matchedRowCount, changedRows, perfectRows, changes, onlyA, onlyB, quality, score, coverage, cellAccuracy, totalRows, columnCounts };
+		const cellAccuracy = comparedCells ? Math.round((1 - changedCellCount / comparedCells) * 10000) / 100 : null;
+		return { mapping, keyPairs, comparePairs, matchedRowCount, changedRows, changedCellCount, perfectRows, onlyA, onlyB, quality, score, coverage, cellAccuracy, totalRows, columnCounts };
 	}
 
 	function verdictFor(result) {
 		if (!result.comparePairs.length) return { color: "var(--amber)", title: "Rows aligned; values not compared", detail: "The keys align, but no non-key columns are currently included in the comparison." };
-		if (!result.changes.length && !result.onlyA.length && !result.onlyB.length) return { color: "var(--green)", title: "Fully reconciled", detail: "All matched rows and compared cells are identical." };
+		if (!result.changedCellCount && !result.onlyA.length && !result.onlyB.length) return { color: "var(--green)", title: "Databases are consistent", detail: "Every matched StarRocks and MySQL row is identical under the active rules." };
 		if (result.score >= 95 && result.onlyA.length + result.onlyB.length <= 3) return { color: "var(--amber)", title: "Nearly reconciled", detail: "A small, isolated set of differences needs review." };
-		if (result.score >= 70) return { color: "var(--amber)", title: "Differences found", detail: "The reports mostly align, with several records or values to investigate." };
-		return { color: "var(--rose)", title: "Significant divergence", detail: "Missing records and changed values materially separate these reports." };
+		if (result.score >= 70) return { color: "var(--amber)", title: "Consistency gaps found", detail: "The datasets mostly align, with records or values that need investigation." };
+		return { color: "var(--rose)", title: "Significant data divergence", detail: "Missing keys and changed values materially separate StarRocks from MySQL." };
 	}
 
 	function renderToggle(option, label, help) {
@@ -1259,22 +1304,23 @@
 		const keyChips = keyPairs.map(pair => `<span class="key-chip" title="${esc(pair.label)}">${esc(pair.label)}</span>`).join("");
 		return `<section class="panel config-panel">
 			<div class="config-main">
-				<div class="config-block"><span class="config-caption">Match rows by</span><div class="segmented">
-					<button class="segment ${state.options.matchMode === "key" ? "active" : ""}" type="button" data-mode="key">${icon("columns", 12)}Key</button>
+				<div class="config-block"><span class="config-caption">Row alignment</span><div class="segmented">
+					<button class="segment ${state.options.matchMode === "key" ? "active" : ""}" type="button" data-mode="key">${icon("database", 12)}Primary key</button>
 					<button class="segment ${state.options.matchMode === "position" ? "active" : ""}" type="button" data-mode="position">${icon("rows", 12)}Position</button>
 				</div></div>
-				${state.options.matchMode === "key" ? `<span class="divider-v"></span><div class="config-block"><span class="config-caption">Key</span><div class="key-chips">${keyChips || '<span class="muted">Not selected</span>'}</div><button class="btn small" id="editKeyBtn" type="button">Edit key</button><button class="btn small ghost" id="autoKeyBtn" type="button" title="Use the highest quality key candidate">Auto</button></div>` : `<span class="muted" style="font-size:11.5px">Rows are compared in their current order.</span>`}
+				${state.options.matchMode === "key" ? `<span class="divider-v"></span><div class="config-block"><span class="config-caption">PK columns</span><div class="key-chips">${keyChips || '<span class="muted">Not selected</span>'}</div><button class="btn small" id="editKeyBtn" type="button">Configure</button><button class="btn small ghost" id="autoKeyBtn" type="button" title="Detect the highest-quality primary key candidate">Detect PK</button></div>` : `<span class="muted" style="font-size:11.5px">Uses deterministic export order; add ORDER BY to both queries.</span>`}
 				<div class="config-spacer"></div>
 				<span class="tag" title="The last full comparison reused cached results until a rule, key, sheet, or report changes">${state.lastComputeMs < 1000 ? `${Math.round(state.lastComputeMs)} ms` : `${(state.lastComputeMs / 1000).toFixed(1)} s`} analysis</span>
 				<span class="tag">${fmt(result.comparePairs.length)} compared columns</span>
 				<span class="tag">${state.options.headerMode === "strict" ? "Exact" : "Relaxed"} headers</span>
 			</div>
-			<details class="rules"><summary><span>${icon("settings", 13)} &nbsp;Comparison rules</span><span>Whitespace, casing, numbers, and headers</span></summary>
+			<details class="rules"><summary><span>${icon("settings", 13)} &nbsp;Normalization contract</span><span>NULLs, whitespace, casing, decimals, and schema</span></summary>
 				<div class="rules-grid">
 					${renderToggle("trimWhitespace", "Trim edge whitespace", "Ignores spaces before and after a value.")}
 					${renderToggle("collapseWhitespace", "Collapse whitespace", "Treats repeated spaces and line breaks as one space.")}
 					${renderToggle("caseSensitive", "Case sensitive", "Distinguishes “Open” from “open”.")}
 					${renderToggle("numericEquivalent", "Numeric equivalence", "Treats 1,200.00 and 1200 as the same number.")}
+					${renderToggle("nullEquivalent", "NULL equivalence", "Treats empty, NULL, and MySQL \\N markers as equivalent.")}
 					<div class="rule-item"><label class="field-label" for="toleranceInput">Numeric tolerance</label><input class="input" id="toleranceInput" type="number" min="0" step="any" value="${esc(state.options.numericTolerance)}" ${state.options.numericEquivalent ? "" : "disabled"} /><div class="rule-help">Absolute allowed difference, for example 0.01.</div></div>
 					<div class="rule-item"><label class="field-label" for="headerModeSelect">Column header matching</label><select class="select" id="headerModeSelect"><option value="relaxed" ${state.options.headerMode === "relaxed" ? "selected" : ""}>Relaxed case + separators</option><option value="strict" ${state.options.headerMode === "strict" ? "selected" : ""}>Exact header text</option></select><div class="rule-help">Maps “Order ID”, “order_id”, and “order-id” safely by occurrence.</div></div>
 				</div>
@@ -1294,35 +1340,35 @@
 		const headerFlags = state.A.headerIssues.blank.length + state.A.headerIssues.duplicates.length + state.B.headerIssues.blank.length + state.B.headerIssues.duplicates.length;
 		const insights = [];
 		if (!result.comparePairs.length) insights.push(`<div class="insight warning">${icon("warning", 14)}<div><strong>No value columns are being compared.</strong> Include at least one non-key column before treating this result as reconciled.<button type="button" data-goto="columns">Choose columns</button></div></div>`);
-		if (state.options.matchMode === "key" && (duplicateCount || blankCount)) insights.push(`<div class="insight warning">${icon("warning", 14)}<div><strong>Key quality needs attention.</strong> ${fmt(duplicateCount)} duplicate group${duplicateCount === 1 ? "" : "s"} and ${fmt(blankCount)} blank-key row${blankCount === 1 ? "" : "s"} detected.<button type="button" data-goto="quality">Inspect</button></div></div>`);
-		if (headerFlags || result.mapping.onlyA.length || result.mapping.onlyB.length) insights.push(`<div class="insight info">${icon("info", 14)}<div><strong>Column schema differs.</strong> ${fmt(result.mapping.onlyA.length)} A-only, ${fmt(result.mapping.onlyB.length)} B-only, and ${fmt(headerFlags)} header flag${headerFlags === 1 ? "" : "s"}.<button type="button" data-goto="columns">Review</button></div></div>`);
+		if (state.options.matchMode === "key" && (duplicateCount || blankCount)) insights.push(`<div class="insight warning">${icon("warning", 14)}<div><strong>Primary-key integrity needs attention.</strong> ${fmt(duplicateCount)} duplicate group${duplicateCount === 1 ? "" : "s"} and ${fmt(blankCount)} null-key row${blankCount === 1 ? "" : "s"} detected.<button type="button" data-goto="quality">Inspect</button></div></div>`);
+		if (headerFlags || result.mapping.onlyA.length || result.mapping.onlyB.length) insights.push(`<div class="insight info">${icon("info", 14)}<div><strong>Schema drift detected.</strong> ${fmt(result.mapping.onlyA.length)} StarRocks-only, ${fmt(result.mapping.onlyB.length)} MySQL-only, and ${fmt(headerFlags)} header flag${headerFlags === 1 ? "" : "s"}.<button type="button" data-goto="columns">Review</button></div></div>`);
 		return `${insights.length ? `<div class="insight-row">${insights.join("")}</div>` : ""}<section class="panel summary-panel" style="--verdict-color:${verdict.color}">
 			<div class="summary-top">
 				<div class="score-ring" style="--score:${result.score}"><strong>${result.score}%</strong></div>
-				<div class="summary-copy"><h2>${verdict.title}</h2><p>${verdict.detail}</p><div class="summary-badges"><span class="tag">${state.options.matchMode === "key" ? `${result.keyPairs.length}-column key` : "row position"}</span><span class="tag">${result.coverage}% row coverage</span>${result.cellAccuracy !== null ? `<span class="tag">${result.cellAccuracy}% cell accuracy</span>` : ""}</div></div>
-				<div class="summary-actions"><button class="btn" id="copySummaryBtn" type="button">${icon("copy", 13)} Copy summary</button><details class="export-wrap"><summary class="btn">${icon("download", 13)} Export</summary><div class="export-menu"><button type="button" data-export="changes">${icon("download", 12)} Cell differences CSV</button><button type="button" data-export="onlyA">${icon("download", 12)} Only-in-A CSV</button><button type="button" data-export="onlyB">${icon("download", 12)} Only-in-B CSV</button><button type="button" data-export="json">${icon("download", 12)} Complete diff JSON</button></div></details></div>
+				<div class="summary-copy"><h2>${verdict.title}</h2><p>${verdict.detail}</p><div class="summary-badges"><span class="tag">${state.options.matchMode === "key" ? `${result.keyPairs.length}-column PK` : "ordered rows"}</span><span class="tag">${result.coverage}% key coverage</span>${result.cellAccuracy !== null ? `<span class="tag">${result.cellAccuracy}% cell parity</span>` : ""}</div></div>
+				<div class="summary-actions"><button class="btn" id="copySummaryBtn" type="button">${icon("copy", 13)} Copy diagnostics</button><details class="export-wrap"><summary class="btn">${icon("download", 13)} Export</summary><div class="export-menu"><button type="button" data-export="changes">${icon("download", 12)} Mismatched cells CSV</button><button type="button" data-export="onlyA">${icon("download", 12)} StarRocks-only rows</button><button type="button" data-export="onlyB">${icon("download", 12)} MySQL-only rows</button><button type="button" data-export="json">${icon("download", 12)} Audit manifest JSON</button></div></details></div>
 			</div>
 			<div class="stat-grid">
 				${statCard("Perfect rows", result.perfectRows, "var(--green)", "identical across compared columns")}
-				${statCard("Changed rows", result.changedRows.length, "var(--amber)", `${fmt(result.changes.length)} changed cells`)}
-				${statCard("Only in A", result.onlyA.length, "var(--rose)", state.A.fileName)}
-				${statCard("Only in B", result.onlyB.length, "var(--sky)", state.B.fileName)}
+				${statCard("Mismatched rows", result.changedRows.length, "var(--amber)", `${fmt(result.changedCellCount)} mismatched cells`)}
+				${statCard("StarRocks only", result.onlyA.length, "var(--rose)", state.A.fileName)}
+				${statCard("MySQL only", result.onlyB.length, "var(--sky)", state.B.fileName)}
 				${statCard("Matched rows", result.matchedRowCount, "var(--text)", `${result.coverage}% coverage`)}
 				${statCard("Compared cols", result.comparePairs.length, "var(--brand)", `${result.mapping.common.length} common total`)}
 			</div>
 			<div class="proportion" aria-label="Row result proportions"><i style="width:${result.perfectRows / denominator * 100}%;background:var(--green)"></i><i style="width:${result.changedRows.length / denominator * 100}%;background:var(--amber)"></i><i style="width:${result.onlyA.length / denominator * 100}%;background:var(--rose)"></i><i style="width:${result.onlyB.length / denominator * 100}%;background:var(--sky)"></i></div>
-			<div class="legend"><span><i style="background:var(--green)"></i>Perfect</span><span><i style="background:var(--amber)"></i>Changed</span><span><i style="background:var(--rose)"></i>Only A</span><span><i style="background:var(--sky)"></i>Only B</span></div>
+			<div class="legend"><span><i style="background:var(--green)"></i>Consistent</span><span><i style="background:var(--amber)"></i>Mismatch</span><span><i style="background:var(--rose)"></i>StarRocks only</span><span><i style="background:var(--sky)"></i>MySQL only</span></div>
 		</section>`;
 	}
 
 	function renderTabs(result) {
 		const qualityCount = result.quality.duplicateGroupsA.length + result.quality.duplicateGroupsB.length + result.quality.blankKeysA.length + result.quality.blankKeysB.length + state.A.headerIssues.blank.length + state.A.headerIssues.duplicates.length + state.B.headerIssues.blank.length + state.B.headerIssues.duplicates.length;
 		const tabs = [
-			["changes", "Changes", result.changedRows.length],
-			["onlyA", "Only in A", result.onlyA.length],
-			["onlyB", "Only in B", result.onlyB.length],
-			["columns", "Columns", result.mapping.common.length],
-			["quality", "Data quality", qualityCount]
+			["changes", "Mismatches", result.changedRows.length],
+			["onlyA", "StarRocks only", result.onlyA.length],
+			["onlyB", "MySQL only", result.onlyB.length],
+			["columns", "Schema", result.mapping.common.length],
+			["quality", "Integrity", qualityCount]
 		];
 		return `<section class="tabs-shell"><nav class="tabs" aria-label="Difference views">${tabs.map(([id, label, count]) => `<button class="tab ${state.activeTab === id ? "active" : ""}" type="button" data-tab="${id}">${esc(label)}<span class="badge">${fmt(count)}</span></button>`).join("")}</nav><div class="tab-panel" id="tabPanel"></div></section>`;
 	}
@@ -1366,11 +1412,14 @@
 
 	function currentChangedRows(result) {
 		const query = state.query.trim().toLocaleLowerCase();
-		return result.changedRows.map(row => ({ ...row, visibleChanges: row.changes.filter(change => state.columnFilter === "all" || change.columnId === state.columnFilter) })).filter(row => {
-			if (!row.visibleChanges.length) return false;
-			if (!query) return true;
-			return row.key.toLocaleLowerCase().includes(query) || row.visibleChanges.some(change => String(change.column).toLocaleLowerCase().includes(query) || String(change.valueA ?? "").toLocaleLowerCase().includes(query) || String(change.valueB ?? "").toLocaleLowerCase().includes(query));
-		});
+		const rows = [];
+		for (const row of result.changedRows) {
+			const visibleChanges = state.columnFilter === "all" ? row.changes : row.changes.filter(change => change.columnId === state.columnFilter);
+			if (!visibleChanges.length) continue;
+			if (query && !row.key.toLocaleLowerCase().includes(query) && !visibleChanges.some(change => String(change.column).toLocaleLowerCase().includes(query) || String(change.valueA ?? "").toLocaleLowerCase().includes(query) || String(change.valueB ?? "").toLocaleLowerCase().includes(query))) continue;
+			rows.push({ key: row.key, token: row.token, rowA: row.rowA, rowB: row.rowB, changes: row.changes, visibleChanges });
+		}
+		return rows;
 	}
 
 	function paginationMarkup(type, totalItems) {
@@ -1392,14 +1441,14 @@
 		state.pages.changes = page;
 		const visible = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 		const columnOptions = result.comparePairs.filter(pair => result.columnCounts.has(pair.id)).map(pair => `<option value="${esc(pair.id)}" ${state.columnFilter === pair.id ? "selected" : ""}>${esc(pair.label)} (${fmt(result.columnCounts.get(pair.id) || 0)})</option>`).join("");
-		const toolbar = `<div class="toolbar"><div class="search">${icon("search", 13)}<input class="input" id="searchInput" type="search" placeholder="Search key, column, or value" value="${esc(state.query)}" /></div><select class="select" id="columnFilter"><option value="all">All changed columns</option>${columnOptions}</select><div class="segmented"><button class="segment ${state.changeView === "rows" ? "active" : ""}" type="button" data-view="rows">Grouped rows</button><button class="segment ${state.changeView === "cells" ? "active" : ""}" type="button" data-view="cells">Cells</button></div><span class="toolbar-spacer"></span><span class="result-count">${fmt(rows.length)} changed row${rows.length === 1 ? "" : "s"}</span><button class="btn small" type="button" data-export="filteredChanges">${icon("download", 12)} Export filtered</button></div>`;
+		const toolbar = `<div class="toolbar"><div class="search">${icon("search", 13)}<input class="input" id="searchInput" type="search" placeholder="Search PK, column, or value" value="${esc(state.query)}" /></div><select class="select" id="columnFilter"><option value="all">All mismatched columns</option>${columnOptions}</select><div class="segmented"><button class="segment ${state.changeView === "rows" ? "active" : ""}" type="button" data-view="rows">By row</button><button class="segment ${state.changeView === "cells" ? "active" : ""}" type="button" data-view="cells">By cell</button></div><span class="toolbar-spacer"></span><span class="result-count">${fmt(rows.length)} mismatched row${rows.length === 1 ? "" : "s"}</span><button class="btn small" type="button" data-export="filteredChanges">${icon("download", 12)} Export filtered</button></div>`;
 		if (!rows.length) return `${toolbar}${emptyState(state.query || state.columnFilter !== "all" ? "No changes match this filter" : "No cell differences", state.query || state.columnFilter !== "all" ? "Clear the search or choose another changed column." : "All matched rows contain identical values under the current comparison rules.")}`;
 		let content;
 		if (state.changeView === "rows") {
-			content = `<div class="diff-list">${visible.map(row => `<details class="diff-row"><summary><div style="min-width:0"><div class="row-key" title="${esc(row.key)}">${esc(row.key)}</div><div class="row-loc">A:${fmt(row.rowA.rowNumber)} ↔ B:${fmt(row.rowB.rowNumber)}</div></div><span class="change-count">${fmt(row.visibleChanges.length)} field${row.visibleChanges.length === 1 ? "" : "s"}</span><span class="chevron">${icon("chevron", 14)}</span></summary><div class="diff-body">${row.visibleChanges.map(change => `<div class="cell-diff"><div class="cell-name">${esc(change.column)}</div><div class="cell-value a">${displayValue(change.valueA)}</div><div class="cell-arrow">${icon("arrow", 12)}</div><div class="cell-value b">${displayValue(change.valueB)}</div></div>`).join("")}</div></details>`).join("")}</div>`;
+			content = `<div class="diff-list">${visible.map(row => `<details class="diff-row"><summary><div style="min-width:0"><div class="row-key" title="${esc(row.key)}">${esc(row.key)}</div><div class="row-loc">SR:${fmt(row.rowA.rowNumber)} ↔ MY:${fmt(row.rowB.rowNumber)}</div></div><span class="change-count">${fmt(row.visibleChanges.length)} field${row.visibleChanges.length === 1 ? "" : "s"}</span><span class="chevron">${icon("chevron", 14)}</span></summary><div class="diff-body">${row.visibleChanges.map(change => `<div class="cell-diff"><div class="cell-name">${esc(change.column)}</div><div class="cell-value a"><span class="value-source">StarRocks</span>${displayValue(change.valueA)}</div><div class="cell-arrow">${icon("arrow", 12)}</div><div class="cell-value b"><span class="value-source">MySQL</span>${displayValue(change.valueB)}</div></div>`).join("")}</div></details>`).join("")}</div>`;
 		} else {
 			const cells = visible.flatMap(row => row.visibleChanges);
-			content = `<div class="table-wrap"><table><thead><tr><th>Key</th><th>Source rows</th><th>Column</th><th>Report A</th><th>Report B</th></tr></thead><tbody>${cells.map(change => `<tr><td class="key-cell">${esc(change.key)}</td><td>A:${fmt(change.rowNumberA)} · B:${fmt(change.rowNumberB)}</td><td>${esc(change.column)}</td><td class="cell-a">${displayValue(change.valueA)}</td><td class="cell-b">${displayValue(change.valueB)}</td></tr>`).join("")}</tbody></table></div>`;
+			content = `<div class="table-wrap"><table><thead><tr><th>Primary key</th><th>Source rows</th><th>Column</th><th>StarRocks</th><th>MySQL</th></tr></thead><tbody>${cells.map(change => `<tr><td class="key-cell">${esc(change.key)}</td><td>SR:${fmt(change.rowNumberA)} · MY:${fmt(change.rowNumberB)}</td><td>${esc(change.column)}</td><td class="cell-a">${displayValue(change.valueA)}</td><td class="cell-b">${displayValue(change.valueB)}</td></tr>`).join("")}</tbody></table></div>`;
 		}
 		return `${toolbar}${content}${paginationMarkup("changes", rows.length)}`;
 	}
@@ -1407,7 +1456,8 @@
 	function filterOnlyRows(items, side, report) {
 		const query = state.query.trim().toLocaleLowerCase();
 		if (!query) return items;
-		return items.filter(item => item.key.toLocaleLowerCase().includes(query) || item.row.cells.some(value => String(value ?? "").toLocaleLowerCase().includes(query)) || report.columns.some(column => column.label.toLocaleLowerCase().includes(query)));
+		if (report.columns.some(column => column.label.toLocaleLowerCase().includes(query))) return items;
+		return items.filter(item => item.key.toLocaleLowerCase().includes(query) || item.row.cells.some(value => String(value ?? "").toLocaleLowerCase().includes(query)));
 	}
 
 	function renderOnly(result, side) {
@@ -1419,9 +1469,9 @@
 		const visible = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 		const columns = report.columns.slice(0, RENDER_COLUMN_LIMIT);
 		const tone = side === "A" ? "rose" : "sky";
-		const toolbar = `<div class="toolbar"><div class="search">${icon("search", 13)}<input class="input" id="searchInput" type="search" placeholder="Search any value in Report ${side}" value="${esc(state.query)}" /></div><span class="toolbar-spacer"></span><span class="result-count">${fmt(items.length)} unmatched row${items.length === 1 ? "" : "s"}</span><button class="btn small" type="button" data-export="${type}">${icon("download", 12)} Export rows</button></div>`;
-		if (!items.length) return `${toolbar}${emptyState(state.query ? "No rows match this search" : `Nothing exists only in Report ${side}`, state.query ? "Try a broader value or clear the search." : "Every keyed record on this side has a counterpart.")}`;
-		return `${toolbar}<div class="table-wrap"><table><thead><tr><th>Match key</th><th>Reason</th><th>Source row</th>${columns.map(column => `<th>${esc(column.label)}</th>`).join("")}</tr></thead><tbody>${visible.map(item => `<tr><td class="key-cell">${esc(item.key)}</td><td><span class="status-pill ${tone}">${esc(reasonLabel(item.reason))}</span></td><td>${fmt(item.row.rowNumber)}</td>${columns.map(column => `<td>${displayValue(item.row.cells[column.index])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${report.columns.length > RENDER_COLUMN_LIMIT ? `<div class="muted" style="margin-top:9px;font-size:10.5px">Preview shows the first ${RENDER_COLUMN_LIMIT} columns; the CSV export includes all ${fmt(report.columns.length)}.</div>` : ""}${paginationMarkup(type, items.length)}`;
+		const toolbar = `<div class="toolbar"><div class="search">${icon("search", 13)}<input class="input" id="searchInput" type="search" placeholder="Search ${sourceFor(side).name} values" value="${esc(state.query)}" /></div><span class="toolbar-spacer"></span><span class="result-count">${fmt(items.length)} unmatched row${items.length === 1 ? "" : "s"}</span><button class="btn small" type="button" data-export="${type}">${icon("download", 12)} Export rows</button></div>`;
+		if (!items.length) return `${toolbar}${emptyState(state.query ? "No rows match this search" : `No rows exist only in ${sourceFor(side).name}`, state.query ? "Try a broader value or clear the search." : "Every keyed row in this source has a counterpart.")}`;
+		return `${toolbar}<div class="table-wrap"><table><thead><tr><th>Primary key</th><th>Reason</th><th>${sourceFor(side).name} row</th>${columns.map(column => `<th>${esc(column.label)}</th>`).join("")}</tr></thead><tbody>${visible.map(item => `<tr><td class="key-cell">${esc(item.key)}</td><td><span class="status-pill ${tone}">${esc(reasonLabel(item.reason))}</span></td><td>${fmt(item.row.rowNumber)}</td>${columns.map(column => `<td>${displayValue(item.row.cells[column.index])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${report.columns.length > RENDER_COLUMN_LIMIT ? `<div class="muted" style="margin-top:9px;font-size:10.5px">Preview shows the first ${RENDER_COLUMN_LIMIT} columns; the CSV export includes all ${fmt(report.columns.length)}.</div>` : ""}${paginationMarkup(type, items.length)}`;
 	}
 
 	function reasonLabel(reason) {
@@ -1431,14 +1481,14 @@
 	function renderColumns(result) {
 		const keyIds = new Set(result.keyPairs.map(pair => pair.id));
 		return `<div class="toolbar"><span class="result-count">${fmt(result.mapping.common.length)} mapped · ${fmt(result.mapping.onlyA.length + result.mapping.onlyB.length)} unmapped</span><span class="toolbar-spacer"></span><button class="btn small" type="button" id="includeAllBtn">Include all</button><button class="btn small" type="button" id="ignoreUnchangedBtn">Ignore unchanged</button></div>
-		<div class="table-wrap"><table><thead><tr><th>Column mapping</th><th>Role</th><th>Changed cells</th><th>Comparison</th></tr></thead><tbody>${result.mapping.common.map(pair => {
+		<div class="table-wrap"><table><thead><tr><th>StarRocks → MySQL mapping</th><th>Role</th><th>Mismatched cells</th><th>Contract</th></tr></thead><tbody>${result.mapping.common.map(pair => {
 			const isKey = keyIds.has(pair.id);
 			const ignored = state.options.ignoredColumns.has(pair.id);
 			const count = ignored ? null : result.columnCounts.get(pair.id) || 0;
-			return `<tr><td><div class="column-map"><span>${esc(pair.columnA.label)}</span><span class="arrow">→</span><span>${esc(pair.columnB.label)}</span></div>${pair.relaxed ? '<span class="status-pill neutral" style="margin-top:5px">relaxed header match</span>' : ""}</td><td>${isKey ? '<span class="status-pill green">match key</span>' : ignored ? '<span class="status-pill neutral">ignored</span>' : '<span class="status-pill sky">compared</span>'}</td><td style="color:${ignored ? "var(--dim)" : count ? "var(--amber)" : "var(--green)"}">${ignored ? "not checked" : fmt(count)}</td><td>${isKey ? '<span class="dim">locked</span>' : `<button class="btn small column-toggle" type="button" data-column-toggle="${esc(pair.id)}">${ignored ? "Include" : "Ignore"}</button>`}</td></tr>`;
+			return `<tr><td><div class="column-map"><span>${esc(pair.columnA.label)}</span><span class="arrow">→</span><span>${esc(pair.columnB.label)}</span></div>${pair.relaxed ? '<span class="status-pill neutral" style="margin-top:5px">normalized name match</span>' : ""}</td><td>${isKey ? '<span class="status-pill green">primary key</span>' : ignored ? '<span class="status-pill neutral">ignored</span>' : '<span class="status-pill sky">compared</span>'}</td><td style="color:${ignored ? "var(--dim)" : count ? "var(--amber)" : "var(--green)"}">${ignored ? "not checked" : fmt(count)}</td><td>${isKey ? '<span class="dim">locked</span>' : `<button class="btn small column-toggle" type="button" data-column-toggle="${esc(pair.id)}">${ignored ? "Include" : "Ignore"}</button>`}</td></tr>`;
 		}).join("")}</tbody></table></div>
-		${result.mapping.onlyA.length ? `<div class="section-title"><h3>Only in Report A</h3><span>${fmt(result.mapping.onlyA.length)} columns</span></div><div class="pill-cloud">${result.mapping.onlyA.map(column => `<span class="column-pill a">${esc(column.label)}</span>`).join("")}</div>` : ""}
-		${result.mapping.onlyB.length ? `<div class="section-title"><h3>Only in Report B</h3><span>${fmt(result.mapping.onlyB.length)} columns</span></div><div class="pill-cloud">${result.mapping.onlyB.map(column => `<span class="column-pill b">${esc(column.label)}</span>`).join("")}</div>` : ""}`;
+		${result.mapping.onlyA.length ? `<div class="section-title"><h3>StarRocks-only columns</h3><span>${fmt(result.mapping.onlyA.length)} columns</span></div><div class="pill-cloud">${result.mapping.onlyA.map(column => `<span class="column-pill a">${esc(column.label)}</span>`).join("")}</div>` : ""}
+		${result.mapping.onlyB.length ? `<div class="section-title"><h3>MySQL-only columns</h3><span>${fmt(result.mapping.onlyB.length)} columns</span></div><div class="pill-cloud">${result.mapping.onlyB.map(column => `<span class="column-pill b">${esc(column.label)}</span>`).join("")}</div>` : ""}`;
 	}
 
 	function percent(value) { return `${Math.round(value * 100)}%`; }
@@ -1456,19 +1506,19 @@
 				...quality.duplicateGroupsA.map(group => ({ ...group, side: "A" })),
 				...quality.duplicateGroupsB.map(group => ({ ...group, side: "B" }))
 			];
-			if (duplicateGroups.length) details += `<div class="section-title"><h3>Duplicate key groups</h3><span>Exact rows are paired first; remaining rows use the closest cell match</span></div><div class="table-wrap"><table><thead><tr><th>Report</th><th>Key</th><th>Occurrences</th><th>Source rows</th></tr></thead><tbody>${duplicateGroups.slice(0, 100).map(group => `<tr><td><span class="status-pill ${group.side === "A" ? "rose" : "sky"}">Report ${group.side}</span></td><td class="key-cell">${esc(group.key)}</td><td>${fmt(group.entries.length)}</td><td>${group.entries.map(entry => fmt(entry.row.rowNumber)).join(", ")}</td></tr>`).join("")}</tbody></table></div>`;
-			if (quality.blankKeysA.length || quality.blankKeysB.length) details += `<div class="section-title"><h3>Blank matching keys</h3><span>Blank keys are never silently matched</span></div><div class="pill-cloud">${quality.blankKeysA.map(entry => `<span class="column-pill a">A · row ${fmt(entry.row.rowNumber)}</span>`).join("")}${quality.blankKeysB.map(entry => `<span class="column-pill b">B · row ${fmt(entry.row.rowNumber)}</span>`).join("")}</div>`;
-		} else details += `<div class="notice info">${icon("info", 14)}<span>Duplicate and blank-key checks are unavailable in row-position mode. Switch to key matching to audit identifier quality.</span></div>`;
+			if (duplicateGroups.length) details += `<div class="section-title"><h3>Duplicate primary-key groups</h3><span>Exact rows pair first; remaining duplicates use the closest-cell match</span></div><div class="table-wrap"><table><thead><tr><th>Database</th><th>Primary key</th><th>Occurrences</th><th>Export rows</th></tr></thead><tbody>${duplicateGroups.slice(0, 100).map(group => `<tr><td><span class="status-pill ${group.side === "A" ? "rose" : "sky"}">${sourceFor(group.side).name}</span></td><td class="key-cell">${esc(group.key)}</td><td>${fmt(group.entries.length)}</td><td>${group.entries.map(row => fmt(row.rowNumber)).join(", ")}</td></tr>`).join("")}</tbody></table></div>`;
+			if (quality.blankKeysA.length || quality.blankKeysB.length) details += `<div class="section-title"><h3>Null primary keys</h3><span>Null keys are never silently matched</span></div><div class="pill-cloud">${quality.blankKeysA.map(row => `<span class="column-pill a">StarRocks · row ${fmt(row.rowNumber)}</span>`).join("")}${quality.blankKeysB.map(row => `<span class="column-pill b">MySQL · row ${fmt(row.rowNumber)}</span>`).join("")}</div>`;
+		} else details += `<div class="notice info">${icon("info", 14)}<span>Duplicate and null-PK checks are unavailable in position mode. Use primary-key alignment for integrity diagnostics.</span></div>`;
 
 		return `<div class="quality-grid">
-			<div class="quality-card"><strong style="color:${duplicateRowsA ? "var(--amber)" : "var(--green)"}">${fmt(duplicateRowsA)}</strong><span>extra duplicate rows in A</span></div>
-			<div class="quality-card"><strong style="color:${duplicateRowsB ? "var(--amber)" : "var(--green)"}">${fmt(duplicateRowsB)}</strong><span>extra duplicate rows in B</span></div>
-			<div class="quality-card"><strong style="color:${quality.blankKeysA.length + quality.blankKeysB.length ? "var(--amber)" : "var(--green)"}">${fmt(quality.blankKeysA.length + quality.blankKeysB.length)}</strong><span>rows with blank keys</span></div>
+			<div class="quality-card"><strong style="color:${duplicateRowsA ? "var(--amber)" : "var(--green)"}">${fmt(duplicateRowsA)}</strong><span>extra StarRocks PK duplicates</span></div>
+			<div class="quality-card"><strong style="color:${duplicateRowsB ? "var(--amber)" : "var(--green)"}">${fmt(duplicateRowsB)}</strong><span>extra MySQL PK duplicates</span></div>
+			<div class="quality-card"><strong style="color:${quality.blankKeysA.length + quality.blankKeysB.length ? "var(--amber)" : "var(--green)"}">${fmt(quality.blankKeysA.length + quality.blankKeysB.length)}</strong><span>rows with null primary keys</span></div>
 			<div class="quality-card"><strong style="color:${headerA + headerB ? "var(--amber)" : "var(--green)"}">${fmt(headerA + headerB)}</strong><span>blank or duplicate header flags</span></div>
 		</div>${details}
-		<div class="section-title"><h3>Key candidate analysis</h3><span>Completeness · uniqueness · cross-report overlap</span></div>
-		<div class="table-wrap"><table><thead><tr><th>Candidate</th><th>Complete A / B</th><th>Unique A / B</th><th>Overlap</th><th>Assessment</th></tr></thead><tbody>${recommendations.map((item, index) => `<tr><td class="key-cell">${esc(item.pair.label)} ${index === 0 ? '<span class="status-pill green">recommended</span>' : ""}</td><td>${percent(item.coverageA)} / ${percent(item.coverageB)}</td><td>${percent(item.uniqueA)} / ${percent(item.uniqueB)}</td><td><div style="display:flex;align-items:center;gap:8px"><div class="meter"><i style="width:${percent(item.overlap)}"></i></div>${percent(item.overlap)}</div></td><td>${item.guessed ? '<span class="status-pill sky">identifier name</span>' : item.uniqueA > .98 && item.uniqueB > .98 ? '<span class="status-pill green">high uniqueness</span>' : '<span class="status-pill neutral">review</span>'}</td></tr>`).join("")}</tbody></table></div>
-		${headerA + headerB ? `<div class="section-title"><h3>Header diagnostics</h3><span>Use the file cards above to change the header row</span></div><div class="pill-cloud">${state.A.headerIssues.blank.map(column => `<span class="column-pill a">A · blank header at column ${column.index + 1}</span>`).join("")}${state.A.headerIssues.duplicates.map(column => `<span class="column-pill a">A · duplicate ${esc(column.label)}</span>`).join("")}${state.B.headerIssues.blank.map(column => `<span class="column-pill b">B · blank header at column ${column.index + 1}</span>`).join("")}${state.B.headerIssues.duplicates.map(column => `<span class="column-pill b">B · duplicate ${esc(column.label)}</span>`).join("")}</div>` : ""}`;
+		<div class="section-title"><h3>Primary-key candidate analysis</h3><span>Completeness · uniqueness · cross-database overlap</span></div>
+		<div class="table-wrap"><table><thead><tr><th>Candidate</th><th>Complete SR / MY</th><th>Unique SR / MY</th><th>Overlap</th><th>Assessment</th></tr></thead><tbody>${recommendations.map((item, index) => `<tr><td class="key-cell">${esc(item.pair.label)} ${index === 0 ? '<span class="status-pill green">recommended PK</span>' : ""}</td><td>${percent(item.coverageA)} / ${percent(item.coverageB)}</td><td>${percent(item.uniqueA)} / ${percent(item.uniqueB)}</td><td><div style="display:flex;align-items:center;gap:8px"><div class="meter"><i style="width:${percent(item.overlap)}"></i></div>${percent(item.overlap)}</div></td><td>${item.guessed ? '<span class="status-pill sky">identifier name</span>' : item.uniqueA > .98 && item.uniqueB > .98 ? '<span class="status-pill green">high uniqueness</span>' : '<span class="status-pill neutral">review</span>'}</td></tr>`).join("")}</tbody></table></div>
+		${headerA + headerB ? `<div class="section-title"><h3>Export header diagnostics</h3><span>Adjust the header row in either source card</span></div><div class="pill-cloud">${state.A.headerIssues.blank.map(column => `<span class="column-pill a">StarRocks · blank header at column ${column.index + 1}</span>`).join("")}${state.A.headerIssues.duplicates.map(column => `<span class="column-pill a">StarRocks · duplicate ${esc(column.label)}</span>`).join("")}${state.B.headerIssues.blank.map(column => `<span class="column-pill b">MySQL · blank header at column ${column.index + 1}</span>`).join("")}${state.B.headerIssues.duplicates.map(column => `<span class="column-pill b">MySQL · duplicate ${esc(column.label)}</span>`).join("")}</div>` : ""}`;
 	}
 
 	function renderTabBody(result) {
@@ -1499,7 +1549,7 @@
 		const autoKey = $("#autoKeyBtn");
 		if (autoKey) autoKey.addEventListener("click", () => {
 			const recommendation = keyRecommendations(mapping.common)[0];
-			if (recommendation) { state.options.keyIds = [recommendation.pair.id]; renderResults(); showToast(`Using ${recommendation.pair.label} as the matching key`); }
+			if (recommendation) { state.options.keyIds = [recommendation.pair.id]; renderResults(); showToast(`Detected ${recommendation.pair.label} as the primary-key candidate`); }
 		});
 		$$('[data-toggle]').forEach(toggle => toggle.addEventListener("click", () => {
 			const option = toggle.dataset.toggle;
@@ -1601,7 +1651,7 @@
 	}
 
 	function downloadBlob(content, type, fileName) {
-		const blob = new Blob([content], { type });
+		const blob = content instanceof Blob ? content : new Blob(Array.isArray(content) ? content : [content], { type });
 		const url = URL.createObjectURL(blob);
 		const anchor = document.createElement("a");
 		anchor.href = url;
@@ -1614,45 +1664,46 @@
 	}
 
 	async function exportChanges(result, filtered = false) {
-		const changeRows = filtered ? currentChangedRows(result).flatMap(row => row.visibleChanges) : result.changes;
 		function* rows() {
-			yield ["difference_type", "match_key", "report_a_row", "report_b_row", "column_a", "column_b", "value_a", "value_b"];
-			for (const change of changeRows) yield ["changed_cell", change.key, change.rowNumberA, change.rowNumberB, change.columnA, change.columnB, change.valueA, change.valueB];
+			yield ["difference_type", "primary_key", "starrocks_row", "mysql_row", "starrocks_column", "mysql_column", "starrocks_value", "mysql_value"];
+			if (filtered) {
+				for (const row of currentChangedRows(result)) for (const change of row.visibleChanges) yield ["mismatched_cell", change.key, change.rowNumberA, change.rowNumberB, change.columnA, change.columnB, change.valueA, change.valueB];
+			} else for (const row of result.changedRows) for (const change of row.changes) yield ["mismatched_cell", change.key, change.rowNumberA, change.rowNumberB, change.columnA, change.columnB, change.valueA, change.valueB];
 		}
-		await downloadCsvRows(rows(), filtered ? "recon-filtered-changes.csv" : "recon-cell-differences.csv");
+		await downloadCsvRows(rows(), filtered ? "starrocks-mysql-filtered-mismatches.csv" : "starrocks-mysql-cell-mismatches.csv");
 	}
 
 	async function exportOnly(result, side) {
 		const report = state[side];
 		const items = result[side === "A" ? "onlyA" : "onlyB"];
 		function* rows() {
-			yield ["difference_type", "report", "reason", "match_key", "source_row", ...report.columns.map(column => column.label)];
-			for (const item of items) yield ["unmatched_row", side, reasonLabel(item.reason), item.key, item.row.rowNumber, ...report.columns.map(column => item.row.cells[column.index])];
+			yield ["difference_type", "database", "reason", "primary_key", "source_row", ...report.columns.map(column => column.label)];
+			for (const item of items) yield ["unmatched_row", sourceFor(side).slug, reasonLabel(item.reason), item.key, item.row.rowNumber, ...report.columns.map(column => item.row.cells[column.index])];
 		}
-		await downloadCsvRows(rows(), `recon-only-in-${side.toLowerCase()}.csv`);
+		await downloadCsvRows(rows(), `${sourceFor(side).slug}-only-rows.csv`);
 	}
 
 	function summaryObject(result) {
 		return {
 			generatedAt: new Date().toISOString(),
-			reportA: { file: state.A.fileName, sheet: state.A.sheetName, headerRow: state.A.headerIndex + 1, rows: state.A.rows.length, columns: state.A.columns.length },
-			reportB: { file: state.B.fileName, sheet: state.B.sheetName, headerRow: state.B.headerIndex + 1, rows: state.B.rows.length, columns: state.B.columns.length },
+			starrocks: { file: state.A.fileName, sheet: state.A.sheetName, headerRow: state.A.headerIndex + 1, rows: state.A.rows.length, columns: state.A.columns.length },
+			mysql: { file: state.B.fileName, sheet: state.B.sheetName, headerRow: state.B.headerIndex + 1, rows: state.B.rows.length, columns: state.B.columns.length },
 			matching: { mode: state.options.matchMode, key: result.keyPairs.map(pair => pair.label), headerMode: state.options.headerMode },
-			rules: { trimWhitespace: state.options.trimWhitespace, collapseWhitespace: state.options.collapseWhitespace, caseSensitive: state.options.caseSensitive, numericEquivalent: state.options.numericEquivalent, numericTolerance: state.options.numericTolerance, ignoredColumns: result.mapping.common.filter(pair => state.options.ignoredColumns.has(pair.id)).map(pair => pair.label) },
-			summary: { reconciliationScore: result.score, rowCoverage: result.coverage, cellAccuracy: result.cellAccuracy, matchedRows: result.matchedRowCount, perfectRows: result.perfectRows, changedRows: result.changedRows.length, changedCells: result.changes.length, onlyInA: result.onlyA.length, onlyInB: result.onlyB.length },
-			quality: { duplicateKeyGroupsA: result.quality.duplicateGroupsA.length, duplicateKeyGroupsB: result.quality.duplicateGroupsB.length, blankKeysA: result.quality.blankKeysA.length, blankKeysB: result.quality.blankKeysB.length }
+			rules: { trimWhitespace: state.options.trimWhitespace, collapseWhitespace: state.options.collapseWhitespace, caseSensitive: state.options.caseSensitive, numericEquivalent: state.options.numericEquivalent, numericTolerance: state.options.numericTolerance, nullEquivalent: state.options.nullEquivalent, ignoredColumns: result.mapping.common.filter(pair => state.options.ignoredColumns.has(pair.id)).map(pair => pair.label) },
+			summary: { consistencyScore: result.score, keyCoverage: result.coverage, cellParity: result.cellAccuracy, matchedRows: result.matchedRowCount, consistentRows: result.perfectRows, mismatchedRows: result.changedRows.length, mismatchedCells: result.changedCellCount, starrocksOnly: result.onlyA.length, mysqlOnly: result.onlyB.length },
+			quality: { duplicatePrimaryKeyGroupsStarrocks: result.quality.duplicateGroupsA.length, duplicatePrimaryKeyGroupsMysql: result.quality.duplicateGroupsB.length, nullPrimaryKeysStarrocks: result.quality.blankKeysA.length, nullPrimaryKeysMysql: result.quality.blankKeysB.length }
 		};
 	}
 
 	function exportJson(result) {
 		const payload = {
 			...summaryObject(result),
-			columnMapping: result.mapping.common.map(pair => ({ reportA: pair.columnA.label, reportB: pair.columnB.label, role: result.keyPairs.some(key => key.id === pair.id) ? "key" : state.options.ignoredColumns.has(pair.id) ? "ignored" : "compared", changedCells: result.columnCounts.get(pair.id) || 0 })),
-			changes: result.changes.map(change => ({ key: change.key, reportARow: change.rowNumberA, reportBRow: change.rowNumberB, columnA: change.columnA, columnB: change.columnB, valueA: change.valueA, valueB: change.valueB })),
-			onlyInA: result.onlyA.map(item => ({ key: item.key, row: item.row.rowNumber, reason: item.reason, values: Object.fromEntries(state.A.columns.map(column => [column.label, item.row.cells[column.index]])) })),
-			onlyInB: result.onlyB.map(item => ({ key: item.key, row: item.row.rowNumber, reason: item.reason, values: Object.fromEntries(state.B.columns.map(column => [column.label, item.row.cells[column.index]])) }))
+			schemaMapping: result.mapping.common.map(pair => ({ starrocksColumn: pair.columnA.label, mysqlColumn: pair.columnB.label, role: result.keyPairs.some(key => key.id === pair.id) ? "primary_key" : state.options.ignoredColumns.has(pair.id) ? "ignored" : "compared", mismatchedCells: result.columnCounts.get(pair.id) || 0 })),
+			mismatches: result.changedRows.flatMap(row => row.changes.map(change => ({ primaryKey: change.key, starrocksRow: change.rowNumberA, mysqlRow: change.rowNumberB, starrocksColumn: change.columnA, mysqlColumn: change.columnB, starrocksValue: change.valueA, mysqlValue: change.valueB }))),
+			starrocksOnly: result.onlyA.map(item => ({ primaryKey: item.key, row: item.row.rowNumber, reason: item.reason, values: Object.fromEntries(state.A.columns.map(column => [column.label, item.row.cells[column.index]])) })),
+			mysqlOnly: result.onlyB.map(item => ({ primaryKey: item.key, row: item.row.rowNumber, reason: item.reason, values: Object.fromEntries(state.B.columns.map(column => [column.label, item.row.cells[column.index]])) }))
 		};
-		downloadBlob(JSON.stringify(payload, null, 2), "application/json", "recon-complete-diff.json");
+		downloadBlob(JSON.stringify(payload, null, 2), "application/json", "starrocks-mysql-audit-manifest.json");
 	}
 
 	async function handleExport(type, result) {
@@ -1666,12 +1717,12 @@
 	function summaryText(result) {
 		const summary = summaryObject(result);
 		return [
-			`Reconciliation: ${summary.summary.reconciliationScore}%`,
-			`A: ${summary.reportA.file} · ${fmt(summary.reportA.rows)} rows`,
-			`B: ${summary.reportB.file} · ${fmt(summary.reportB.rows)} rows`,
+			`StarRocks ↔ MySQL consistency: ${summary.summary.consistencyScore}%`,
+			`StarRocks: ${summary.starrocks.file} · ${fmt(summary.starrocks.rows)} rows`,
+			`MySQL: ${summary.mysql.file} · ${fmt(summary.mysql.rows)} rows`,
 			`Mode: ${summary.matching.mode}${summary.matching.key.length ? ` · key ${summary.matching.key.join(" + ")}` : ""}`,
-			`Perfect: ${fmt(summary.summary.perfectRows)} · Changed: ${fmt(summary.summary.changedRows)} rows / ${fmt(summary.summary.changedCells)} cells`,
-			`Only A: ${fmt(summary.summary.onlyInA)} · Only B: ${fmt(summary.summary.onlyInB)}`
+			`Consistent: ${fmt(summary.summary.consistentRows)} · Mismatched: ${fmt(summary.summary.mismatchedRows)} rows / ${fmt(summary.summary.mismatchedCells)} cells`,
+			`StarRocks only: ${fmt(summary.summary.starrocksOnly)} · MySQL only: ${fmt(summary.summary.mysqlOnly)}`
 		].join("\n");
 	}
 
@@ -1715,13 +1766,13 @@
 		] };
 		const sourceA = { kind: "matrix", sheets: sheetsA, sheetNames: ["Orders"] };
 		const sourceB = { kind: "matrix", sheets: sheetsB, sheetNames: ["Orders"] };
-		state.A = buildReport({ loadId: ++state.reportSequence, fileName: "orders-before.csv", size: 0, modified: 0, source: sourceA, sheetNames: sourceA.sheetNames }, "Orders", 0);
-		state.B = buildReport({ loadId: ++state.reportSequence, fileName: "orders-after.csv", size: 0, modified: 0, source: sourceB, sheetNames: sourceB.sheetNames }, "Orders", 0);
+		state.A = buildReport({ loadId: ++state.reportSequence, fileName: "starrocks_orders_export.csv", size: 0, modified: 0, source: sourceA, sheetNames: sourceA.sheetNames }, "Orders", 0);
+		state.B = buildReport({ loadId: ++state.reportSequence, fileName: "mysql_orders_export.csv", size: 0, modified: 0, source: sourceB, sheetNames: sourceB.sheetNames }, "Orders", 0);
 		resetAnalysisState();
 		hideError();
 		renderSlots();
 		renderResults();
-		showToast("Demo reports loaded");
+		showToast("StarRocks and MySQL demo extracts loaded");
 	}
 
 	function resetAll() {
@@ -1759,7 +1810,7 @@
 		resetAnalysisState();
 		renderSlots();
 		renderResults();
-		showToast("Reports swapped");
+		showToast("StarRocks and MySQL extracts swapped");
 	});
 	$("#closeKeyDialog").addEventListener("click", () => $("#keyDialog").close());
 	$("#cancelKeyDialog").addEventListener("click", () => $("#keyDialog").close());
