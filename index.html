@@ -7,6 +7,7 @@
 	<meta name="color-scheme" content="dark light" />
 	<title>SR ↔ MySQL Recon — Database Export Comparator</title>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+	<script src="https://unpkg.com/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
 	<style>
 		:root {
 			--sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -264,6 +265,10 @@
 		@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 		.panel { border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 96%, transparent); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
 		.config-panel { margin-bottom: 15px; overflow: visible; }
+		.report-identity { padding: 10px 12px; display: grid; grid-template-columns: auto minmax(180px, 1fr) auto auto; gap: 9px; align-items: center; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--surface-2) 68%, transparent); }
+		.report-identity-label { color: var(--dim); font: 700 9px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+		.truth-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid color-mix(in srgb, var(--sky) 24%, var(--border)); border-radius: 7px; color: var(--sky); background: var(--sky-soft); font: 700 9px/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+		.truth-badge i { width: 6px; height: 6px; border-radius: 99px; background: var(--sky); box-shadow: 0 0 0 3px var(--sky-soft); }
 		.config-main { padding: 15px 17px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 		.config-block { display: flex; align-items: center; gap: 10px; min-width: 0; }
 		.config-caption { color: var(--dim); font: 650 9.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
@@ -441,6 +446,9 @@
 			.bridge-line { width: 38px; height: 1px; }
 			.summary-top { grid-template-columns: auto minmax(0, 1fr); }
 			.summary-actions { grid-column: 1 / -1; justify-content: flex-start; }
+			.report-identity { grid-template-columns: 1fr auto; }
+			.report-identity-label, .truth-badge { grid-column: 1 / -1; }
+			.truth-badge { width: fit-content; }
 			.insight-row { grid-template-columns: 1fr; }
 			.cell-diff { grid-template-columns: 1fr; }
 			.cell-arrow { height: 25px; transform: rotate(90deg); }
@@ -502,6 +510,7 @@
 				<span class="capability"><i></i>Streaming CSV parser</span>
 				<span class="capability"><i></i>PK-aware hash matching</span>
 				<span class="capability"><i></i>Schema + row diagnostics</span>
+				<span class="capability"><i></i>One-page parity PDF</span>
 			</div>
 		</section>
 
@@ -604,6 +613,7 @@
 		lastComputeMs: 0,
 		keyAnalysisCache: { signature: "", items: [] },
 		reportSequence: 0,
+		reportNameOverride: "",
 		searchTimer: null,
 		keyDraft: [],
 		toastTimer: null
@@ -659,6 +669,37 @@
 		let unit = 0;
 		while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
 		return `${value >= 10 || unit === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[unit]}`;
+	}
+
+	function extractReportName(fileName) {
+		const base = String(fileName || "").replace(/\.[^.]+$/, "").replace(/[._-]+/g, " ").replace(/\s+/g, " ").trim();
+		if (!base) return "Database Report";
+		let tokens = base.split(" ").filter(Boolean);
+		const isSourceMarker = token => /^(?:sr|starrocks|mysql|my sql)$/i.test(token);
+		while (tokens.length && isSourceMarker(tokens[0])) tokens.shift();
+		const markerIndex = tokens.findIndex(isSourceMarker);
+		if (markerIndex > 0) tokens = tokens.slice(0, markerIndex);
+		while (tokens.length && (/^\d+$/.test(tokens[tokens.length - 1]) || /^(?:export|extract|dump|data|file|final|output)$/i.test(tokens[tokens.length - 1]))) tokens.pop();
+		if (!tokens.length) return "Database Report";
+		const acronyms = new Set(["id", "qa", "tl", "aux", "api", "sql", "csat", "sla", "kpi"]);
+		return tokens.map(token => acronyms.has(token.toLowerCase()) ? token.toUpperCase() : token.charAt(0).toUpperCase() + token.slice(1).toLowerCase()).join(" ");
+	}
+
+	function detectedReportName() {
+		const starrocksName = state.A ? extractReportName(state.A.fileName) : "";
+		const mysqlName = state.B ? extractReportName(state.B.fileName) : "";
+		if (!starrocksName) return mysqlName || "Database Report";
+		if (!mysqlName) return starrocksName;
+		if (starrocksName.toLowerCase() === mysqlName.toLowerCase()) return mysqlName;
+		const left = starrocksName.split(" ");
+		const right = mysqlName.split(" ");
+		const common = [];
+		for (let index = 0; index < Math.min(left.length, right.length) && left[index].toLowerCase() === right[index].toLowerCase(); index++) common.push(right[index]);
+		return common.length ? common.join(" ") : mysqlName;
+	}
+
+	function currentReportName() {
+		return state.reportNameOverride.trim() || detectedReportName();
 	}
 
 	function normalizeHeader(value) {
@@ -920,6 +961,7 @@
 			const matrix = sourceMatrix(source, sheetName);
 			const base = { loadId: ++state.reportSequence, fileName: file.name, size: file.size, modified: file.lastModified, source, sheetNames: source.sheetNames };
 			state[side] = buildReport(base, sheetName, autoHeaderIndex(matrix));
+			state.reportNameOverride = "";
 			resetAnalysisState();
 			showToast(`${sourceFor(side).name} extract loaded: ${file.name}`);
 		} catch (error) {
@@ -955,6 +997,7 @@
 
 	function removeReport(side) {
 		state[side] = null;
+		state.reportNameOverride = "";
 		resetAnalysisState();
 		hideError();
 		renderSlots();
@@ -1303,6 +1346,12 @@
 		const keyPairs = mapping.common.filter(pair => state.options.keyIds.includes(pair.id));
 		const keyChips = keyPairs.map(pair => `<span class="key-chip" title="${esc(pair.label)}">${esc(pair.label)}</span>`).join("");
 		return `<section class="panel config-panel">
+			<div class="report-identity">
+				<span class="report-identity-label">Report identity</span>
+				<input class="input mono" id="reportNameInput" type="text" value="${esc(currentReportName())}" title="Auto-detected from ${esc(state.A.fileName)} and ${esc(state.B.fileName)}" aria-label="Report name used inside the parity PDF" />
+				<button class="btn small ghost" id="detectReportNameBtn" type="button" title="Reset to the name detected from both filenames">Use detected</button>
+				<span class="truth-badge"><i></i>MySQL source of truth</span>
+			</div>
 			<div class="config-main">
 				<div class="config-block"><span class="config-caption">Row alignment</span><div class="segmented">
 					<button class="segment ${state.options.matchMode === "key" ? "active" : ""}" type="button" data-mode="key">${icon("database", 12)}Primary key</button>
@@ -1346,7 +1395,7 @@
 			<div class="summary-top">
 				<div class="score-ring" style="--score:${result.score}"><strong>${result.score}%</strong></div>
 				<div class="summary-copy"><h2>${verdict.title}</h2><p>${verdict.detail}</p><div class="summary-badges"><span class="tag">${state.options.matchMode === "key" ? `${result.keyPairs.length}-column PK` : "ordered rows"}</span><span class="tag">${result.coverage}% key coverage</span>${result.cellAccuracy !== null ? `<span class="tag">${result.cellAccuracy}% cell parity</span>` : ""}</div></div>
-				<div class="summary-actions"><button class="btn" id="copySummaryBtn" type="button">${icon("copy", 13)} Copy diagnostics</button><details class="export-wrap"><summary class="btn">${icon("download", 13)} Export</summary><div class="export-menu"><button type="button" data-export="changes">${icon("download", 12)} Mismatched cells CSV</button><button type="button" data-export="onlyA">${icon("download", 12)} StarRocks-only rows</button><button type="button" data-export="onlyB">${icon("download", 12)} MySQL-only rows</button><button type="button" data-export="json">${icon("download", 12)} Audit manifest JSON</button></div></details></div>
+				<div class="summary-actions"><button class="btn primary" id="pdfReportBtn" type="button">${icon("file", 13)} Download parity PDF</button><button class="btn" id="copySummaryBtn" type="button">${icon("copy", 13)} Copy diagnostics</button><details class="export-wrap"><summary class="btn">${icon("download", 13)} Export</summary><div class="export-menu"><button type="button" data-export="changes">${icon("download", 12)} Mismatched cells CSV</button><button type="button" data-export="onlyA">${icon("download", 12)} StarRocks-only rows</button><button type="button" data-export="onlyB">${icon("download", 12)} MySQL-only rows</button><button type="button" data-export="json">${icon("download", 12)} Audit manifest JSON</button></div></details></div>
 			</div>
 			<div class="stat-grid">
 				${statCard("Perfect rows", result.perfectRows, "var(--green)", "identical across compared columns")}
@@ -1539,6 +1588,18 @@
 	}
 
 	function wireConfigEvents(mapping) {
+		const reportNameInput = $("#reportNameInput");
+		if (reportNameInput) reportNameInput.addEventListener("change", event => {
+			state.reportNameOverride = event.target.value.trim();
+			event.target.value = currentReportName();
+			showToast(`PDF report name: ${currentReportName()}`);
+		});
+		const detectReportName = $("#detectReportNameBtn");
+		if (detectReportName) detectReportName.addEventListener("click", () => {
+			state.reportNameOverride = "";
+			if (reportNameInput) reportNameInput.value = detectedReportName();
+			showToast(`Detected report name: ${detectedReportName()}`);
+		});
 		$$('[data-mode]').forEach(button => button.addEventListener("click", () => {
 			state.options.matchMode = button.dataset.mode;
 			state.pages = { changes: 1, onlyA: 1, onlyB: 1 };
@@ -1572,6 +1633,8 @@
 		$$('[data-tab]').forEach(button => button.addEventListener("click", () => { state.activeTab = button.dataset.tab; state.query = ""; state.pages[state.activeTab] = 1; renderResults(); }));
 		const copySummary = $("#copySummaryBtn");
 		if (copySummary) copySummary.addEventListener("click", () => copyText(summaryText(result), "Summary copied"));
+		const pdfReport = $("#pdfReportBtn");
+		if (pdfReport) pdfReport.addEventListener("click", () => downloadParityPdf(result, pdfReport));
 		$$('.export-menu [data-export]').forEach(button => button.addEventListener("click", () => handleExport(button.dataset.export, result)));
 	}
 
@@ -1663,6 +1726,279 @@
 		showToast(`${fileName} downloaded`);
 	}
 
+	function classifyParityMismatch(starrocksValue, mysqlValue) {
+		const starrocks = String(starrocksValue ?? "");
+		const mysql = String(mysqlValue ?? "");
+		const nullLike = value => /^(?:|null|\\n)$/i.test(value.trim());
+		if (nullLike(starrocks) && nullLike(mysql)) return "NULL representation";
+		const withoutControls = value => value.replace(/[\u0000-\u001F\u007F]/g, "");
+		if (withoutControls(starrocks) === withoutControls(mysql)) return "Hidden control characters";
+		const decodeEntities = value => value.replace(/&apos;|&#0*39;/gi, "'").replace(/&quot;|&#0*34;/gi, '"').replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">");
+		if (decodeEntities(starrocks) === decodeEntities(mysql)) return "HTML entity encoding";
+		if (starrocks.normalize("NFKC") === mysql.normalize("NFKC")) return "Unicode normalization";
+		const withoutApostrophe = value => value.replace(/^\s*'+/, "").trim();
+		if ((/^\s*'+/.test(starrocks) || /^\s*'+/.test(mysql)) && withoutApostrophe(starrocks) === withoutApostrophe(mysql)) return "Leading apostrophe";
+		const withoutTrailingApostrophe = value => value.replace(/'+\s*$/, "").trim();
+		if ((/'+\s*$/.test(starrocks) || /'+\s*$/.test(mysql)) && withoutTrailingApostrophe(starrocks) === withoutTrailingApostrophe(mysql)) return "Trailing apostrophe";
+		const unwrapQuotes = value => {
+			const trimmed = value.trim();
+			return trimmed.length > 1 && ((trimmed[0] === '"' && trimmed.at(-1) === '"') || (trimmed[0] === "'" && trimmed.at(-1) === "'")) ? trimmed.slice(1, -1) : trimmed;
+		};
+		const isQuoteWrapped = value => { const trimmed = value.trim(); return trimmed.length > 1 && ((trimmed[0] === '"' && trimmed.at(-1) === '"') || (trimmed[0] === "'" && trimmed.at(-1) === "'")); };
+		if ((isQuoteWrapped(starrocks) || isQuoteWrapped(mysql)) && unwrapQuotes(starrocks) === unwrapQuotes(mysql)) return "Quote wrapping";
+		if (starrocks.trim() === mysql.trim()) return "Edge whitespace";
+		if (starrocks.trim().replace(/\s+/g, " ") === mysql.trim().replace(/\s+/g, " ")) return "Whitespace formatting";
+		if (starrocks.toLocaleLowerCase() === mysql.toLocaleLowerCase()) return "Letter casing";
+		const booleanValue = value => ({ "1": true, "true": true, "yes": true, "y": true, "0": false, "false": false, "no": false, "n": false })[value.trim().toLowerCase()];
+		const starrocksBoolean = booleanValue(starrocks);
+		const mysqlBoolean = booleanValue(mysql);
+		if (starrocksBoolean !== undefined && mysqlBoolean !== undefined && starrocksBoolean === mysqlBoolean) return "Boolean encoding";
+		const starrocksNumber = parseStrictNumber(starrocks);
+		const mysqlNumber = parseStrictNumber(mysql);
+		if (starrocksNumber !== null && mysqlNumber !== null && starrocksNumber === mysqlNumber) return /^[-+]?0\d/.test(starrocks.trim()) || /^[-+]?0\d/.test(mysql.trim()) ? "Leading zero padding" : "Numeric formatting";
+		const parseComparableDate = value => {
+			const match = value.trim().match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(?:\s*(Z|[+-]\d{2}:?\d{2}))?)?$/i);
+			if (!match) return null;
+			const [, yearText, monthText, dayText, hourText = "0", minuteText = "0", secondText = "0", fractionText = "", zoneText = ""] = match;
+			const [year, month, day, hour, minute, second] = [yearText, monthText, dayText, hourText, minuteText, secondText].map(Number);
+			const millisecond = Number((fractionText + "000").slice(0, 3));
+			if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) return null;
+			const utc = Date.UTC(year, month - 1, day, hour, minute, second, millisecond);
+			const checked = new Date(utc);
+			if (checked.getUTCFullYear() !== year || checked.getUTCMonth() !== month - 1 || checked.getUTCDate() !== day) return null;
+			if (!zoneText || zoneText.toUpperCase() === "Z") return utc;
+			const zone = zoneText.match(/^([+-])(\d{2}):?(\d{2})$/);
+			if (!zone) return null;
+			const offsetHours = Number(zone[2]);
+			const offsetMinutes = Number(zone[3]);
+			if (offsetHours > 23 || offsetMinutes > 59) return null;
+			const offset = (offsetHours * 60 + offsetMinutes) * 60000;
+			return utc - (zone[1] === "+" ? offset : -offset);
+		};
+		const starrocksTime = parseComparableDate(starrocks);
+		const mysqlTime = parseComparableDate(mysql);
+		if (starrocksTime !== null && starrocksTime === mysqlTime) return "Date/time formatting";
+		return "Value divergence";
+	}
+
+	function parityRecommendation(result, dominantPattern) {
+		if (result.onlyB.length) return "Verify StarRocks ingestion filters, load latency, and failed batches for the missing MySQL keys.";
+		if (result.mapping.onlyB.length || result.mapping.onlyA.length) return "Align both SELECT projections, aliases, and data types before rerunning parity.";
+		const recommendations = {
+			"Leading apostrophe": "Remove text-forcing prefixes in the StarRocks export and preserve the MySQL text representation.",
+			"Trailing apostrophe": "Remove trailing text artifacts in the StarRocks export serialization.",
+			"Quote wrapping": "Align CSV quoting and field serialization between both export pipelines.",
+			"Edge whitespace": "Apply consistent TRIM behavior at the export boundary.",
+			"Whitespace formatting": "Normalize repeated whitespace and line breaks in the StarRocks projection.",
+			"Letter casing": "Align collation/case transformation or explicitly normalize casing in both SELECT queries.",
+			"Numeric formatting": "Align DECIMAL casts, scale, grouping, and string serialization with MySQL.",
+			"Leading zero padding": "Use the same identifier type and zero-padding contract in both systems.",
+			"Boolean encoding": "Standardize boolean serialization, for example 0/1 or false/true, across both exports.",
+			"Date/time formatting": "Align timezone, precision, and timestamp formatting with the MySQL source-of-truth query.",
+			"NULL representation": "Standardize NULL and empty-value serialization across both exports.",
+			"Hidden control characters": "Strip non-printing control characters in the StarRocks export path.",
+			"HTML entity encoding": "Decode or consistently encode HTML entities before comparison.",
+			"Unicode normalization": "Apply the same Unicode normalization form to both export queries.",
+			"Value divergence": "Trace the top mismatched fields through StarRocks ingestion and transformation logic."
+		};
+		return recommendations[dominantPattern] || "Align StarRocks output with MySQL, then rerun the parity validation.";
+	}
+
+	function analyzeParity(result) {
+		if (result.pdfAnalysis) return result.pdfAnalysis;
+		const patternCounts = new Map();
+		const columns = new Map();
+		const samples = [];
+		for (const changedRow of result.changedRows) {
+			for (const change of changedRow.changes) {
+				const pattern = classifyParityMismatch(change.valueA, change.valueB);
+				patternCounts.set(pattern, (patternCounts.get(pattern) || 0) + 1);
+				let column = columns.get(change.columnId);
+				if (!column) { column = { name: change.column, count: 0, patterns: new Map() }; columns.set(change.columnId, column); }
+				column.count++;
+				column.patterns.set(pattern, (column.patterns.get(pattern) || 0) + 1);
+				if (samples.length < 6) samples.push({ key: change.key, column: change.column, mysql: change.valueB, starrocks: change.valueA, pattern });
+			}
+		}
+		const patterns = Array.from(patternCounts, ([name, count]) => ({ name, count })).sort((left, right) => right.count - left.count);
+		const topColumns = Array.from(columns.values()).map(column => ({
+			...column,
+			dominantPattern: Array.from(column.patterns, ([name, count]) => ({ name, count })).sort((left, right) => right.count - left.count)[0]?.name || "-"
+		})).sort((left, right) => right.count - left.count);
+		const dominant = patterns[0] || { name: "No value mismatch", count: 0 };
+		const formattingCount = patterns.filter(item => item.name !== "Value divergence").reduce((sum, item) => sum + item.count, 0);
+		let rootCause;
+		if (!result.changedCellCount && !result.onlyB.length && !result.onlyA.length) rootCause = "Full parity - no row-level or value-level difference detected";
+		else if (result.onlyB.length) rootCause = "Completeness gap - MySQL source rows are missing from StarRocks";
+		else if (formattingCount > result.changedCellCount * .6) rootCause = `Formatting drift - ${dominant.name.toLowerCase()} is the dominant mismatch pattern`;
+		else if (result.mapping.onlyB.length || result.mapping.onlyA.length) rootCause = "Schema drift between the MySQL and StarRocks exports";
+		else rootCause = "Value-level divergence across matched primary keys";
+		const recommendation = parityRecommendation(result, dominant.name);
+		result.pdfAnalysis = { patterns, topColumns, samples, dominant, formattingCount, rootCause, recommendation };
+		return result.pdfAnalysis;
+	}
+
+	function pdfSafe(value) {
+		return String(value ?? "").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2013\u2014\u2194\u2192]/g, "-").normalize("NFKD").replace(/[^\x20-\x7E]/g, "?");
+	}
+
+	function clipPdfText(doc, value, width) {
+		const text = pdfSafe(value);
+		if (doc.getTextWidth(text) <= width) return text;
+		let low = 0;
+		let high = text.length;
+		while (low < high) {
+			const middle = Math.ceil((low + high) / 2);
+			if (doc.getTextWidth(text.slice(0, middle) + "...") <= width) low = middle; else high = middle - 1;
+		}
+		return text.slice(0, low) + "...";
+	}
+
+	function drawPdfTable(doc, x, y, widths, headers, rows, rowHeight = 7.2) {
+		const totalWidth = widths.reduce((sum, width) => sum + width, 0);
+		doc.setFillColor(31, 38, 54);
+		doc.roundedRect(x, y, totalWidth, rowHeight, 1.2, 1.2, "F");
+		doc.setFont("helvetica", "bold");
+		doc.setFontSize(6.5);
+		doc.setTextColor(209, 216, 230);
+		let cursor = x;
+		headers.forEach((header, index) => { doc.text(clipPdfText(doc, header, widths[index] - 4), cursor + 2, y + 4.7); cursor += widths[index]; });
+		rows.forEach((row, rowIndex) => {
+			const top = y + rowHeight * (rowIndex + 1);
+			doc.setFillColor(...(rowIndex % 2 ? [248, 249, 252] : [241, 244, 249]));
+			doc.rect(x, top, totalWidth, rowHeight, "F");
+			doc.setDrawColor(220, 225, 234);
+			doc.line(x, top + rowHeight, x + totalWidth, top + rowHeight);
+			doc.setFont("helvetica", "normal");
+			doc.setFontSize(6.3);
+			doc.setTextColor(42, 49, 64);
+			cursor = x;
+			row.forEach((cell, index) => { doc.text(clipPdfText(doc, cell, widths[index] - 4), cursor + 2, top + 4.7); cursor += widths[index]; });
+		});
+		return y + rowHeight * (rows.length + 1);
+	}
+
+	async function downloadParityPdf(result, button) {
+		if (!window.jspdf || !window.jspdf.jsPDF) {
+			showError("The PDF generator could not be loaded. Check your connection and reload the page.");
+			return;
+		}
+		const original = button.innerHTML;
+		button.disabled = true;
+		button.textContent = "Generating one-page PDF...";
+		await new Promise(resolve => setTimeout(resolve, 20));
+		try {
+			const { jsPDF } = window.jspdf;
+			const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+			const reportName = currentReportName();
+			const analysis = analyzeParity(result);
+			const generatedAt = new Date();
+			const pageWidth = 297;
+			const mysqlRows = state.B.rows.length;
+			const starrocksRows = state.A.rows.length;
+			const rowDifference = starrocksRows - mysqlRows;
+			const schemaDifference = result.mapping.onlyA.length + result.mapping.onlyB.length;
+			const fullParity = !result.changedCellCount && !result.onlyA.length && !result.onlyB.length && !schemaDifference;
+			const status = fullParity ? "PASS - FULL PARITY" : result.onlyB.length || result.score < 95 ? "FAIL - PARITY GAP" : "REVIEW - DIFFERENCES FOUND";
+			const statusColor = fullParity ? [29, 150, 102] : result.onlyB.length || result.score < 95 ? [202, 70, 83] : [181, 119, 12];
+			doc.setProperties({ title: `${pdfSafe(reportName)} - Parity Difference`, subject: "MySQL source-of-truth parity validation against StarRocks", author: "SR MySQL Recon" });
+			doc.setFillColor(10, 14, 24);
+			doc.rect(0, 0, pageWidth, 37, "F");
+			doc.setTextColor(138, 150, 255);
+			doc.setFont("helvetica", "bold");
+			doc.setFontSize(7.5);
+			doc.text("PARITY DIFFERENCE / ONE-PAGE ENGINEERING SUMMARY", 12, 10);
+			doc.setTextColor(247, 248, 252);
+			doc.setFontSize(20);
+			doc.text(clipPdfText(doc, reportName, 210), 12, 22);
+			doc.setFont("helvetica", "normal");
+			doc.setFontSize(8);
+			doc.setTextColor(164, 174, 192);
+			doc.text("MySQL source of truth -> StarRocks parity validation", 12, 30);
+			doc.text(`Generated ${generatedAt.toISOString().replace("T", " ").slice(0, 19)} UTC`, 221, 10);
+
+			const sourceCard = (x, label, file, rows, color) => {
+				doc.setFillColor(...color);
+				doc.roundedRect(x, 41, 132, 17, 2, 2, "F");
+				doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(255, 255, 255); doc.text(label, x + 4, 47);
+				doc.setFont("helvetica", "normal"); doc.setFontSize(6.8); doc.text(clipPdfText(doc, file, 94), x + 4, 53);
+				doc.setFont("helvetica", "bold"); doc.text(`${fmt(rows)} rows`, x + 108, 53, { align: "right" });
+			};
+			sourceCard(12, "MYSQL / SOURCE OF TRUTH", state.B.fileName, mysqlRows, [40, 126, 192]);
+			sourceCard(153, "STARROCKS / OBSERVED", state.A.fileName, starrocksRows, [93, 104, 232]);
+
+			doc.setFillColor(...statusColor);
+			doc.roundedRect(12, 63, 273, 14, 2, 2, "F");
+			doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.text(status, 17, 72);
+			doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.text(clipPdfText(doc, analysis.rootCause, 192), 92, 72);
+
+			const cards = [
+				["CONSISTENCY", `${result.score}%`],
+				["CELL PARITY", result.cellAccuracy === null ? "N/A" : `${result.cellAccuracy}%`],
+				["MISSING IN STARROCKS", fmt(result.onlyB.length)],
+				["MISMATCHED CELLS", fmt(result.changedCellCount)]
+			];
+			cards.forEach(([label, value], index) => {
+				const x = 12 + index * 69.5;
+				doc.setFillColor(244, 246, 250); doc.setDrawColor(220, 225, 234); doc.roundedRect(x, 82, 64, 18, 2, 2, "FD");
+				doc.setTextColor(103, 112, 130); doc.setFont("helvetica", "bold"); doc.setFontSize(5.8); doc.text(label, x + 4, 88);
+				doc.setTextColor(28, 34, 46); doc.setFontSize(12); doc.text(value, x + 4, 96);
+			});
+
+			doc.setTextColor(31, 38, 54); doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.text("PARITY CHECK", 12, 109);
+			const parityRows = [
+				["Total rows", fmt(mysqlRows), fmt(starrocksRows), String(rowDifference), rowDifference === 0 ? "Match" : "Mismatch"],
+				["Matched primary keys", fmt(result.matchedRowCount), fmt(result.matchedRowCount), "0", "Aligned"],
+				["Rows missing in StarRocks", fmt(result.onlyB.length), "0", String(-result.onlyB.length), result.onlyB.length ? "Gap" : "None"],
+				["Unexpected StarRocks rows", "0", fmt(result.onlyA.length), String(result.onlyA.length), result.onlyA.length ? "Extra" : "None"],
+				["Mapped / drift columns", fmt(result.mapping.common.length), fmt(result.mapping.common.length), String(schemaDifference), schemaDifference ? "Review" : "Aligned"]
+			];
+			drawPdfTable(doc, 12, 113, [42, 24, 25, 18, 23], ["Metric", "MySQL", "StarRocks", "Delta", "Result"], parityRows);
+
+			doc.setTextColor(31, 38, 54); doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.text("TOP DIFFERENCE FIELDS", 153, 109);
+			const topRows = analysis.topColumns.slice(0, 5).map(column => [
+				column.name,
+				fmt(column.count),
+				result.changedCellCount ? `${Math.round(column.count / result.changedCellCount * 100)}%` : "0%",
+				column.dominantPattern
+			]);
+			while (topRows.length < 5) topRows.push([topRows.length ? "-" : "No mismatched fields", "0", "0%", "-"]);
+			drawPdfTable(doc, 153, 113, [49, 19, 16, 50], ["Field", "Cells", "Share", "Likely pattern"], topRows);
+
+			doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(31, 38, 54); doc.text("ROOT-CAUSE SUMMARY", 12, 164);
+			doc.setFillColor(246, 248, 252); doc.setDrawColor(220, 225, 234); doc.roundedRect(12, 168, 132, 27, 2, 2, "FD");
+			doc.setFontSize(7); doc.setTextColor(...statusColor); doc.text(clipPdfText(doc, analysis.rootCause, 124), 16, 175);
+			doc.setFont("helvetica", "normal"); doc.setTextColor(69, 77, 94); doc.setFontSize(6.3);
+			const rootDetails = [
+				`Format-classified differences: ${fmt(analysis.formattingCount)} of ${fmt(result.changedCellCount)} cells.`,
+				`MySQL-only keys: ${fmt(result.onlyB.length)} | StarRocks-only keys: ${fmt(result.onlyA.length)}.`,
+				fullParity ? "Conclusion: StarRocks matches the MySQL source of truth." : `Action: ${analysis.recommendation}`
+			];
+			rootDetails.forEach((line, index) => doc.text(clipPdfText(doc, line, 124), 16, 181 + index * 4.2));
+
+			doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(31, 38, 54); doc.text("EVIDENCE & DEVELOPER ACTION", 153, 164);
+			doc.setFillColor(246, 248, 252); doc.setDrawColor(220, 225, 234); doc.roundedRect(153, 168, 132, 27, 2, 2, "FD");
+			doc.setFont("helvetica", "normal"); doc.setTextColor(69, 77, 94); doc.setFontSize(6.2);
+			const evidence = analysis.samples.slice(0, 2).map(sample => `${sample.column}: MySQL="${sample.mysql}" | StarRocks="${sample.starrocks}" (${sample.pattern})`);
+			if (!evidence.length) evidence.push("No mismatched value sample - all compared cells are consistent.");
+			evidence.push(`Schema drift: ${fmt(result.mapping.onlyB.length)} MySQL-only / ${fmt(result.mapping.onlyA.length)} StarRocks-only columns.`);
+			evidence.slice(0, 3).forEach((line, index) => doc.text(clipPdfText(doc, line, 124), 157, 175 + index * 5));
+
+			doc.setDrawColor(210, 216, 226); doc.line(12, 201, 285, 201);
+			doc.setFont("helvetica", "normal"); doc.setFontSize(5.8); doc.setTextColor(115, 124, 142);
+			doc.text("MySQL is the source of truth. StarRocks is evaluated against MySQL under the active normalization contract.", 12, 205);
+			doc.text("Parity Difference | Page 1 of 1", 285, 205, { align: "right" });
+			if (doc.getNumberOfPages() !== 1) throw new Error("The parity summary exceeded one page.");
+			doc.save("Parity Difference.pdf");
+			showToast("Parity Difference.pdf downloaded");
+		} catch (error) {
+			showError(error && error.message ? error.message : "The parity PDF could not be generated.");
+		} finally {
+			button.disabled = false;
+			button.innerHTML = original;
+		}
+	}
+
 	async function exportChanges(result, filtered = false) {
 		function* rows() {
 			yield ["difference_type", "primary_key", "starrocks_row", "mysql_row", "starrocks_column", "mysql_column", "starrocks_value", "mysql_value"];
@@ -1686,6 +2022,7 @@
 	function summaryObject(result) {
 		return {
 			generatedAt: new Date().toISOString(),
+			reportName: currentReportName(),
 			starrocks: { file: state.A.fileName, sheet: state.A.sheetName, headerRow: state.A.headerIndex + 1, rows: state.A.rows.length, columns: state.A.columns.length },
 			mysql: { file: state.B.fileName, sheet: state.B.sheetName, headerRow: state.B.headerIndex + 1, rows: state.B.rows.length, columns: state.B.columns.length },
 			matching: { mode: state.options.matchMode, key: result.keyPairs.map(pair => pair.label), headerMode: state.options.headerMode },
@@ -1744,6 +2081,7 @@
 	}
 
 	function loadDemo() {
+		state.reportNameOverride = "";
 		const sheetsA = { Orders: [
 			["Order ID", "Customer", "Status", "Total", "Region", "Updated At", "Legacy note"],
 			["ORD-1001", "Aster Labs", "Shipped", "1,200.00", "North", "2026-08-18", "priority"],
@@ -1780,6 +2118,7 @@
 		state.B = null;
 		state.loading = { A: false, B: false };
 		state.loadingProgress = { A: 0, B: 0 };
+		state.reportNameOverride = "";
 		resetAnalysisState();
 		hideError();
 		renderSlots();
