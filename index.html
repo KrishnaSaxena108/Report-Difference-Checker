@@ -18,6 +18,7 @@
 			--radius-lg: 20px;
 			--shadow-sm: 0 1px 2px rgba(0, 0, 0, .2);
 			--shadow: 0 18px 50px rgba(0, 0, 0, .22);
+			--shadow-lg: 0 24px 80px rgba(0, 0, 0, .28);
 		}
 
 		html[data-theme="dark"] {
@@ -116,6 +117,10 @@
 		}
 
 		::selection { background: color-mix(in srgb, var(--brand) 35%, transparent); }
+		* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+		*::-webkit-scrollbar { width: 9px; height: 9px; }
+		*::-webkit-scrollbar-track { background: transparent; }
+		*::-webkit-scrollbar-thumb { background: var(--border-strong); border: 2px solid transparent; border-radius: 99px; background-clip: padding-box; }
 		.hidden { display: none !important; }
 		.mono { font-family: var(--mono); }
 		.muted { color: var(--muted); }
@@ -123,7 +128,7 @@
 		.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 		.app-shell { width: min(1240px, calc(100% - 36px)); margin: 0 auto; padding: 24px 0 42px; }
-		.topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 46px; }
+		.topbar { position: sticky; top: 12px; z-index: 40; display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 0 -12px 42px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--border) 82%, transparent); border-radius: 15px; background: color-mix(in srgb, var(--bg-elevated) 78%, transparent); backdrop-filter: blur(18px) saturate(130%); box-shadow: 0 10px 34px rgba(0, 0, 0, .12); }
 		.brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
 		.brand-mark {
 			width: 38px;
@@ -139,6 +144,13 @@
 		.brand-name { font: 700 15px/1.1 var(--mono); letter-spacing: -.025em; }
 		.brand-path { color: var(--dim); font: 500 10.5px/1.2 var(--mono); margin-top: 4px; }
 		.top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+		.runtime-pill { min-height: 32px; padding: 0 10px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid color-mix(in srgb, var(--green) 22%, var(--border)); border-radius: 9px; background: var(--green-soft); color: var(--green); font: 650 9.5px/1 var(--mono); white-space: nowrap; }
+		.runtime-pill i { width: 7px; height: 7px; border-radius: 99px; background: currentColor; box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 12%, transparent); }
+		.runtime-pill[data-state="loading"] { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 24%, var(--border)); background: var(--amber-soft); }
+		.runtime-pill[data-state="partial"] { color: var(--sky); border-color: color-mix(in srgb, var(--sky) 24%, var(--border)); background: var(--sky-soft); }
+		.runtime-pill[data-state="compared"] { color: var(--green); }
+		.command-trigger { min-width: 128px; justify-content: space-between; }
+		.command-trigger kbd { margin-left: 7px; padding: 3px 5px; border: 1px solid var(--border-strong); border-bottom-width: 2px; border-radius: 5px; color: var(--dim); background: var(--surface-2); font: 650 8.5px/1 var(--mono); }
 
 		.btn, .icon-btn {
 			border: 1px solid var(--border);
@@ -165,7 +177,8 @@
 		.btn.small { min-height: 31px; padding: 5px 9px; font-size: 11.5px; }
 		.icon-btn { width: 36px; padding: 0; }
 
-		.hero { max-width: 850px; margin: 0 auto 30px; text-align: center; }
+		.hero { max-width: 880px; margin: 0 auto 32px; text-align: center; position: relative; }
+		.hero::before { content: ""; position: absolute; z-index: -1; inset: -30px 8% auto; height: 230px; background: radial-gradient(ellipse, color-mix(in srgb, var(--brand) 12%, transparent), transparent 68%); filter: blur(18px); pointer-events: none; }
 		.eyebrow {
 			display: inline-flex;
 			align-items: center;
@@ -193,7 +206,7 @@
 			border: 1px dashed var(--border-strong);
 			border-radius: var(--radius-lg);
 			background: linear-gradient(145deg, color-mix(in srgb, var(--surface) 96%, transparent), color-mix(in srgb, var(--surface-2) 90%, transparent));
-			box-shadow: var(--shadow-sm);
+			box-shadow: var(--shadow-sm), inset 0 1px 0 color-mix(in srgb, white 4%, transparent);
 			position: relative;
 			overflow: hidden;
 			transition: transform .16s ease, border-color .16s ease, background .16s ease;
@@ -201,7 +214,9 @@
 		.file-slot::after { content: ""; position: absolute; inset: 0 0 auto; height: 2px; opacity: .9; }
 		.file-slot.a::after { background: linear-gradient(90deg, var(--brand), transparent 75%); }
 		.file-slot.b::after { background: linear-gradient(90deg, var(--sky), transparent 75%); }
-		.file-slot.dragging { transform: translateY(-2px); background: var(--surface-2); }
+		.file-slot:hover { border-color: color-mix(in srgb, var(--brand) 28%, var(--border-strong)); transform: translateY(-1px); box-shadow: 0 14px 34px rgba(0, 0, 0, .12); }
+		.file-slot.b:hover { border-color: color-mix(in srgb, var(--sky) 30%, var(--border-strong)); }
+		.file-slot.dragging { transform: translateY(-3px) scale(1.004); background: var(--surface-2); box-shadow: 0 18px 45px color-mix(in srgb, var(--brand) 12%, transparent); }
 		.file-slot.a.dragging { border-color: var(--brand); }
 		.file-slot.b.dragging { border-color: var(--sky); }
 		.slot-inner { height: 100%; padding: 20px; display: flex; flex-direction: column; }
@@ -263,7 +278,7 @@
 
 		.workspace { animation: rise .28s ease both; }
 		@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-		.panel { border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 96%, transparent); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+		.panel { border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 96%, transparent); border-radius: var(--radius); box-shadow: var(--shadow-sm), inset 0 1px 0 color-mix(in srgb, white 3%, transparent); }
 		.config-panel { margin-bottom: 15px; overflow: visible; }
 		.report-identity { padding: 10px 12px; display: grid; grid-template-columns: auto minmax(180px, 1fr) auto auto; gap: 9px; align-items: center; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--surface-2) 68%, transparent); }
 		.report-identity-label { color: var(--dim); font: 700 9px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
@@ -279,6 +294,13 @@
 		.key-chips { display: flex; align-items: center; gap: 5px; min-width: 0; flex-wrap: wrap; }
 		.key-chip { max-width: 180px; padding: 5px 8px; border: 1px solid color-mix(in srgb, var(--brand) 25%, var(--border)); color: var(--brand); background: var(--brand-soft); border-radius: 7px; font: 600 11px/1.2 var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 		.config-spacer { flex: 1; }
+		.developer-bar { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: linear-gradient(90deg, color-mix(in srgb, var(--brand-soft) 45%, var(--surface-2)), color-mix(in srgb, var(--surface-2) 55%, transparent)); }
+		.dev-label { display: inline-flex; align-items: center; gap: 6px; padding-right: 2px; color: var(--brand); font: 750 8.5px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+		.dev-label i { width: 6px; height: 6px; border-radius: 2px; background: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+		.run-identity { display: inline-flex; align-items: center; gap: 7px; min-width: 0; margin-right: 3px; }
+		.run-identity span { color: var(--dim); font: 700 8.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+		.run-identity code { color: var(--green); font: 700 10.5px/1 var(--mono); white-space: nowrap; }
+		.dev-separator { width: 1px; align-self: stretch; min-height: 29px; background: var(--border); margin: 0 2px; }
 		.rules { border-top: 1px solid var(--border); }
 		.rules summary { list-style: none; cursor: pointer; padding: 11px 17px; display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 11.5px; font-weight: 600; }
 		.rules summary::-webkit-details-marker { display: none; }
@@ -293,7 +315,7 @@
 		.toggle.on::after { transform: translateX(15px); }
 		.rule-help { color: var(--dim); font-size: 10.5px; margin-top: 3px; }
 
-		.summary-panel { padding: 20px; margin-bottom: 14px; position: relative; overflow: hidden; }
+		.summary-panel { padding: 20px; margin-bottom: 14px; position: relative; overflow: hidden; box-shadow: 0 18px 50px rgba(0, 0, 0, .12), inset 0 1px 0 color-mix(in srgb, white 4%, transparent); }
 		.summary-panel::before { content: ""; position: absolute; width: 300px; height: 300px; right: -145px; top: -180px; border-radius: 50%; background: color-mix(in srgb, var(--verdict-color, var(--brand)) 9%, transparent); filter: blur(1px); }
 		.summary-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 17px; align-items: center; position: relative; }
 		.score-ring { --score: 0; width: 82px; height: 82px; flex: 0 0 auto; display: grid; place-items: center; position: relative; border-radius: 50%; background: conic-gradient(var(--verdict-color) calc(var(--score) * 1%), var(--surface-3) 0); }
@@ -313,7 +335,8 @@
 		.export-menu button:hover { background: var(--surface-2); }
 
 		.stat-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 9px; margin-top: 20px; position: relative; }
-		.stat { border: 1px solid var(--border); background: var(--surface-2); border-radius: 10px; padding: 12px; min-width: 0; }
+		.stat { border: 1px solid var(--border); background: var(--surface-2); border-radius: 10px; padding: 12px; min-width: 0; transition: transform .14s ease, border-color .14s ease, background .14s ease; }
+		.stat:hover { transform: translateY(-2px); border-color: var(--border-strong); background: var(--surface-3); }
 		.stat-label { color: var(--dim); font: 650 9px/1.2 var(--mono); letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 		.stat-value { margin-top: 7px; color: var(--stat-color, var(--text)); font: 700 21px/1 var(--mono); letter-spacing: -.035em; }
 		.stat-sub { margin-top: 5px; color: var(--dim); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -328,7 +351,7 @@
 		.insight.info { color: var(--sky); border-color: color-mix(in srgb, var(--sky) 22%, var(--border)); background: var(--sky-soft); }
 		.insight button { color: inherit; border: 0; background: none; padding: 0; margin-left: 4px; text-decoration: underline; cursor: pointer; font-weight: 700; }
 
-		.tabs-shell { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
+		.tabs-shell { scroll-margin-top: 84px; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: 0 16px 42px rgba(0, 0, 0, .10); }
 		.tabs { display: flex; align-items: center; gap: 2px; padding: 0 10px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
 		.tabs::-webkit-scrollbar { display: none; }
 		.tab { flex: 0 0 auto; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); padding: 14px 10px 12px; font-size: 11.5px; font-weight: 650; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
@@ -382,6 +405,54 @@
 		.status-pill.rose { color: var(--rose); background: var(--rose-soft); }
 		.status-pill.sky { color: var(--sky); background: var(--sky-soft); }
 		.status-pill.neutral { color: var(--muted); background: var(--surface-3); }
+		.status-pill.critical { color: var(--rose); background: var(--rose-soft); }
+		.status-pill.major { color: var(--amber); background: var(--amber-soft); }
+		.status-pill.minor { color: var(--sky); background: var(--sky-soft); }
+		.status-pill.info { color: var(--muted); background: var(--surface-3); }
+		.issue-example { min-width: 320px; max-width: 620px; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+		.issue-count { color: var(--text); font-weight: 700; text-align: right; }
+		.diagnostic-code { display: inline-flex; align-items: center; padding: 4px 7px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); color: var(--green); font: 650 10px/1.25 var(--mono); }
+		.diagnostic-meta { margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+		.diagnostic-meta > div { border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); padding: 10px 12px; min-width: 0; }
+		.diagnostic-meta span { display: block; color: var(--dim); font: 700 8.5px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; margin-bottom: 6px; }
+		.diagnostic-meta code { color: var(--text-soft); font: 550 10px/1.5 var(--mono); overflow-wrap: anywhere; }
+		.shortcut-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 9px 16px; align-items: center; }
+		.shortcut-grid kbd { justify-self: start; min-width: 72px; padding: 5px 8px; border: 1px solid var(--border-strong); border-bottom-width: 2px; border-radius: 6px; background: var(--surface-2); color: var(--text); font: 650 10px/1 var(--mono); text-align: center; }
+		.shortcut-grid span { color: var(--muted); font-size: 11.5px; }
+		.inspector-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+		.inspector-search .field-label { grid-column: 1 / -1; margin-bottom: -2px; }
+		.inspector-result { margin-top: 13px; display: grid; gap: 11px; }
+		.inspector-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+		.inspector-summary > div { min-width: 0; padding: 10px 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); }
+		.inspector-summary span { display: block; margin-bottom: 6px; color: var(--dim); font: 700 8px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; }
+		.inspector-summary strong { display: block; color: var(--text-soft); font: 650 10.5px/1.35 var(--mono); overflow-wrap: anywhere; }
+		.inspector-sql { padding: 11px 12px; border: 1px solid color-mix(in srgb, var(--green) 24%, var(--border)); border-radius: 9px; background: var(--green-soft); }
+		.inspector-sql span { display: block; margin-bottom: 7px; color: var(--green); font: 700 8.5px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; }
+		.inspector-sql code { display: block; color: var(--text-soft); font: 600 10.5px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+		.inspector-table { max-height: 360px; }
+		.inspector-table td:first-child { min-width: 150px; color: var(--text); font-weight: 650; }
+		.inspector-table td:nth-child(2) { color: var(--brand); }
+		.inspector-table td:nth-child(3) { color: var(--sky); }
+		.inspector-loading { min-height: 110px; display: grid; place-items: center; color: var(--muted); font: 550 11px/1.5 var(--mono); text-align: center; }
+		.command-dialog { width: min(680px, calc(100% - 28px)); overflow: hidden; }
+		.command-search { position: relative; padding: 13px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--surface-2) 70%, transparent); }
+		.command-search svg { position: absolute; left: 26px; top: 25px; color: var(--dim); pointer-events: none; }
+		.command-search .input { min-height: 45px; padding-left: 38px; padding-right: 62px; font-size: 13px; background: var(--surface); }
+		.command-search kbd { position: absolute; right: 25px; top: 25px; padding: 4px 6px; border: 1px solid var(--border-strong); border-bottom-width: 2px; border-radius: 5px; color: var(--dim); background: var(--surface-2); font: 650 8.5px/1 var(--mono); }
+		.command-results { padding: 8px; max-height: min(480px, 60vh); overflow: auto; }
+		.command-empty { padding: 35px 20px; color: var(--muted); text-align: center; font-size: 12px; }
+		.command-item { width: 100%; padding: 10px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--text); display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; text-align: left; cursor: pointer; }
+		.command-item:hover, .command-item.active { border-color: color-mix(in srgb, var(--brand) 25%, var(--border)); background: var(--brand-soft); }
+		.command-item-icon { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); color: var(--brand); }
+		.command-item-copy { min-width: 0; }
+		.command-item-copy strong { display: block; color: var(--text-soft); font-size: 12px; }
+		.command-item-copy span { display: block; margin-top: 2px; color: var(--dim); font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.command-item-meta { display: grid; justify-items: end; gap: 4px; }
+		.command-item-meta span { color: var(--dim); font: 650 8px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+		.command-item-meta kbd { padding: 3px 5px; border: 1px solid var(--border); border-radius: 5px; color: var(--muted); background: var(--surface-2); font: 600 8px/1 var(--mono); }
+		.command-foot { padding: 9px 13px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--dim); font: 550 9px/1 var(--mono); }
+		.command-foot span { display: inline-flex; align-items: center; gap: 7px; }
+		.command-foot kbd { padding: 3px 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-2); color: var(--muted); font: 600 8px/1 var(--mono); }
 		.column-map { display: grid; grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr); align-items: center; min-width: 260px; }
 		.column-map .arrow { color: var(--faint); text-align: center; }
 		.pill-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -432,10 +503,18 @@
 			.stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 			.rules-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
 			.quality-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+			.diagnostic-meta { grid-template-columns: 1fr; }
+			.inspector-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 		}
 		@media (max-width: 760px) {
 			.app-shell { width: min(100% - 24px, 1240px); padding-top: 14px; }
 			.topbar { margin-bottom: 32px; }
+			.runtime-pill span { display: none; }
+			.runtime-pill { width: 32px; padding: 0; justify-content: center; }
+			.command-trigger { min-width: 36px; padding-inline: 9px; }
+			.command-trigger .command-label, .command-trigger kbd { display: none; }
+			.command-item { grid-template-columns: 32px minmax(0, 1fr); }
+			.command-item-meta { display: none; }
 			.hero { text-align: left; }
 			.hero p { margin-left: 0; }
 			.capability-bar { justify-content: flex-start; }
@@ -458,11 +537,17 @@
 		@media (max-width: 520px) {
 			.brand-path, #demoBtn .btn-label, #resetBtn .btn-label, #themeBtn .btn-label { display: none; }
 			.top-actions { gap: 5px; }
+			.topbar { top: 6px; margin-inline: -5px; padding-inline: 7px; }
 			.file-controls { grid-template-columns: 1fr; }
 			.config-main { align-items: flex-start; }
 			.divider-v { display: none; }
 			.config-block { width: 100%; flex-wrap: wrap; }
 			.config-spacer { display: none; }
+			.developer-bar { align-items: stretch; }
+			.dev-separator { display: none; }
+			.inspector-search { grid-template-columns: 1fr; }
+			.inspector-search .field-label { grid-column: auto; }
+			.inspector-summary { grid-template-columns: 1fr; }
 			.rules-grid { grid-template-columns: 1fr; }
 			.stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 			.summary-panel { padding: 15px; }
@@ -470,6 +555,9 @@
 			.summary-copy h2 { font-size: 17px; }
 			.quality-grid { grid-template-columns: 1fr 1fr; }
 			.tab-panel { padding: 12px; }
+		}
+		@media (prefers-reduced-motion: reduce) {
+			*, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 		}
 	</style>
 </head>
@@ -486,6 +574,11 @@
 				</div>
 			</div>
 			<div class="top-actions">
+				<div class="runtime-pill" title="All reconciliation runs locally in this browser"><i></i><span id="runtimeStatus">Local session · ready</span></div>
+				<button class="btn ghost command-trigger" id="commandBtn" type="button" title="Open developer command palette">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 17l6-5-6-5"/><path d="M12 19h8"/></svg>
+					<span class="command-label">Commands</span><kbd>Ctrl K</kbd>
+				</button>
 				<button class="btn ghost" id="demoBtn" type="button" title="Load example database extracts">
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5M8 17h7"/></svg>
 					<span class="btn-label">Try demo</span>
@@ -511,6 +604,8 @@
 				<span class="capability"><i></i>PK-aware hash matching</span>
 				<span class="capability"><i></i>Schema + row diagnostics</span>
 				<span class="capability"><i></i>One-page parity PDF</span>
+				<span class="capability"><i></i>Primary-key row inspector</span>
+				<span class="capability"><i></i>Reproduction bundles</span>
 			</div>
 		</section>
 
@@ -545,7 +640,7 @@
 		<main id="workspace" class="workspace hidden"></main>
 
 		<footer class="footer">
-			Optimized for StarRocks and MySQL SELECT exports · press / to search · large datasets work best as CSV in a 64-bit browser
+			Optimized for StarRocks and MySQL SELECT exports · press / to search or ? for shortcuts · large datasets work best as CSV in a 64-bit browser
 		</footer>
 	</div>
 
@@ -567,6 +662,57 @@
 		</div>
 	</dialog>
 
+	<dialog id="shortcutDialog" aria-labelledby="shortcutDialogTitle">
+		<div class="dialog-head">
+			<div><h2 id="shortcutDialogTitle">Developer shortcuts</h2><p>Navigate and export without leaving the keyboard.</p></div>
+			<button class="icon-btn" id="closeShortcutDialog" type="button" aria-label="Close dialog">×</button>
+		</div>
+		<div class="dialog-body"><div class="shortcut-grid">
+			<kbd>Ctrl + K</kbd><span>Open the developer command palette</span>
+			<kbd>/</kbd><span>Focus mismatch search</span>
+			<kbd>Alt + I</kbd><span>Open the Issue Ledger</span>
+			<kbd>Alt + D</kbd><span>Open Developer Diagnostics</span>
+			<kbd>Alt + P</kbd><span>Generate the compact parity PDF</span>
+			<kbd>Alt + E</kbd><span>Export the reproduction bundle</span>
+			<kbd>Alt + R</kbd><span>Open the primary-key Row Inspector</span>
+			<kbd>Esc</kbd><span>Close an open dialog or export menu</span>
+		</div></div>
+		<div class="dialog-foot"><span class="muted">Shortcuts are ignored while typing in a field.</span><button class="btn primary" id="doneShortcutDialog" type="button">Done</button></div>
+	</dialog>
+
+	<dialog class="command-dialog" id="commandDialog" aria-labelledby="commandDialogTitle">
+		<div class="command-search">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+			<label class="hidden" id="commandDialogTitle" for="commandInput">Developer commands</label>
+			<input class="input" id="commandInput" type="search" autocomplete="off" spellcheck="false" placeholder="Search actions, exports, diagnostics…" aria-controls="commandResults" />
+			<kbd>Esc</kbd>
+		</div>
+		<div class="command-results" id="commandResults" role="listbox" aria-label="Available developer commands"></div>
+		<div class="command-foot"><span><kbd>↑↓</kbd> navigate <kbd>Enter</kbd> run</span><span id="commandCount">0 commands</span></div>
+	</dialog>
+
+	<dialog id="rowInspectorDialog" aria-labelledby="rowInspectorTitle">
+		<div class="dialog-head">
+			<div><h2 id="rowInspectorTitle">Primary-key Row Inspector</h2><p>Locate a key in both exports and compare every mapped field under the active normalization contract.</p></div>
+			<button class="icon-btn" id="closeRowInspectorDialog" type="button" aria-label="Close dialog">×</button>
+		</div>
+		<div class="dialog-body">
+			<div class="inspector-search">
+				<label class="field-label" for="rowInspectorInput" id="rowInspectorLabel">Primary / composite key</label>
+				<input class="input mono" id="rowInspectorInput" type="search" autocomplete="off" spellcheck="false" placeholder="Paste a key value" />
+				<button class="btn primary" id="runRowInspectorBtn" type="button">Inspect both exports</button>
+			</div>
+			<div class="inspector-result" id="rowInspectorBody"><div class="empty-state" style="min-height:150px"><div><div class="empty-state-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></div><h3>Enter a primary key</h3><p>The lookup scans StarRocks and MySQL locally and shows exact, normalized, and different fields.</p></div></div></div>
+		</div>
+		<div class="dialog-foot">
+			<span class="muted" id="rowInspectorHint">MySQL values remain the source-of-truth side.</span>
+			<div style="display:flex;gap:7px">
+				<button class="btn ghost" id="copyInspectorSqlBtn" type="button" disabled>Copy SQL predicate</button>
+				<button class="btn primary" id="doneRowInspectorDialog" type="button">Done</button>
+			</div>
+		</div>
+	</dialog>
+
 	<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 	<script>
@@ -577,8 +723,10 @@
 	const DELIMITED_EXTENSIONS = new Set(["csv", "tsv", "txt"]);
 	const DELIMITER_SAMPLE_BYTES = 256 * 1024;
 	const KEY_ANALYSIS_SAMPLE_ROWS = 50000;
+	const PROFILE_SAMPLE_ROWS = 20000;
 	const PAGE_SIZE = 50;
 	const RENDER_COLUMN_LIMIT = 18;
+	const CONTRACT_VERSION = 1;
 	const GUESS_KEYS = ["id", "pk", "uuid", "uid", "key", "code", "sku", "employee id", "employee_id", "emp id", "emp_id", "order id", "order_id", "invoice id", "invoice_id", "reference", "reference no", "ref", "ref no", "ref_no"];
 	const SOURCES = {
 		A: { name: "StarRocks", slug: "starrocks", rowLabel: "SR", color: "brand" },
@@ -612,10 +760,16 @@
 		lastAnalysisSignature: "",
 		lastComputeMs: 0,
 		keyAnalysisCache: { signature: "", items: [] },
+		columnProfileCache: new Map(),
 		reportSequence: 0,
 		reportNameOverride: "",
 		searchTimer: null,
 		keyDraft: [],
+		rowInspectorSql: "",
+		rowInspectorRequest: 0,
+		commandQuery: "",
+		commandIndex: 0,
+		commandMatches: [],
 		toastTimer: null
 	};
 
@@ -640,9 +794,134 @@
 			upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
 			arrow: '<path d="M5 12h14M14 7l5 5-5 5"/>',
 			settings: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+			terminal: '<path d="M4 17l6-5-6-5"/><path d="M12 19h8"/>',
 			database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/>'
 		};
 		return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ""}</svg>`;
+	}
+
+	function updateRuntimeStatus() {
+		const status = $("#runtimeStatus");
+		const pill = status?.closest ? status.closest(".runtime-pill") : null;
+		if (!status || !pill) return;
+		if (state.loading.A || state.loading.B) {
+			const side = state.loading.A ? "A" : "B";
+			status.textContent = `Parsing ${sourceFor(side).name} · ${state.loadingProgress[side] || 0}%`;
+			pill.dataset.state = "loading";
+		} else if (state.A && state.B && state.lastResult && !state.lastResult.error) {
+			status.textContent = `${fmt(state.A.rows.length + state.B.rows.length)} rows · compared locally`;
+			pill.dataset.state = "compared";
+		} else if (state.A || state.B) {
+			status.textContent = "1 of 2 reports loaded";
+			pill.dataset.state = "partial";
+		} else {
+			status.textContent = "Local session · ready";
+			pill.dataset.state = "ready";
+		}
+	}
+
+	function openResultTab(tab, focusSearch = false) {
+		if (!state.lastResult || state.lastResult.error) return;
+		state.activeTab = tab;
+		state.query = "";
+		if (state.pages[tab]) state.pages[tab] = 1;
+		renderResults();
+		setTimeout(() => {
+			$(".tabs-shell")?.scrollIntoView({ behavior: "smooth", block: "start" });
+			if (focusSearch) { const search = $("#searchInput"); if (search) { search.focus(); search.select(); } }
+		}, 0);
+	}
+
+	function commandCatalog() {
+		const result = state.lastResult && !state.lastResult.error ? state.lastResult : null;
+		const issueCount = result ? buildParityIssues(result).filter(issue => issue.severity !== "Info").length : 0;
+		return [
+			{ id: "upload-starrocks", label: state.A ? "Replace StarRocks export" : "Load StarRocks export", description: "Select the observed StarRocks query result", group: "Input", icon: "upload", when: !state.loading.A },
+			{ id: "upload-mysql", label: state.B ? "Replace MySQL export" : "Load MySQL export", description: "Select the MySQL source-of-truth query result", group: "Input", icon: "database", when: !state.loading.B },
+			{ id: "swap", label: "Swap loaded exports", description: "Exchange the StarRocks and MySQL input positions", group: "Input", icon: "arrow", when: Boolean(state.A && state.B) },
+			{ id: "detect-key", label: "Detect primary key", description: "Select the strongest complete and unique mapped column", group: "Configure", icon: "settings", when: Boolean(result && state.options.matchMode === "key") },
+			{ id: "configure-key", label: "Configure composite key", description: "Choose one or more mapped columns for row alignment", group: "Configure", icon: "database", when: Boolean(result && state.options.matchMode === "key") },
+			{ id: "issues", label: "Open Issue Ledger", description: `${fmt(issueCount)} current issue categor${issueCount === 1 ? "y" : "ies"}, ordered by severity`, group: "Inspect", icon: "warning", shortcut: "Alt I", when: Boolean(result) },
+			{ id: "diagnostics", label: "Open Developer Diagnostics", description: "Inspect run identity, throughput, schema, and column profiles", group: "Inspect", icon: "terminal", shortcut: "Alt D", when: Boolean(result) },
+			{ id: "mismatches", label: "Search mismatched values", description: "Focus primary-key, column, and cell-value search", group: "Inspect", icon: "search", shortcut: "/", when: Boolean(result) },
+			{ id: "row-inspector", label: "Inspect one primary key", description: "Compare every mapped field and copy a MySQL predicate", group: "Inspect", icon: "search", shortcut: "Alt R", when: Boolean(result && state.options.matchMode === "key" && result.keyPairs.length) },
+			{ id: "pdf", label: "Download compact parity PDF", description: "Generate the verified one-page dynamic issue ledger", group: "Export", icon: "file", shortcut: "Alt P", when: Boolean(result) },
+			{ id: "bundle", label: "Export reproduction bundle", description: "Download developer diagnostics and issue evidence as JSON", group: "Export", icon: "download", shortcut: "Alt E", when: Boolean(result) },
+			{ id: "copy-summary", label: "Copy parity diagnostics", description: "Copy the current report summary to the clipboard", group: "Export", icon: "copy", when: Boolean(result) },
+			{ id: "copy-run", label: "Copy deterministic Run ID", description: result ? runIdFor(result) : "", group: "Developer", icon: "copy", when: Boolean(result) },
+			{ id: "copy-contract", label: "Copy comparison contract", description: "Copy keys, ignored columns, and normalization settings", group: "Developer", icon: "copy", when: Boolean(result) },
+			{ id: "shortcuts", label: "Show keyboard shortcuts", description: "Review navigation and export shortcuts", group: "Interface", icon: "terminal", shortcut: "?", when: true },
+			{ id: "theme", label: `Switch to ${document.documentElement.dataset.theme === "dark" ? "light" : "dark"} theme`, description: "Change the developer workspace color theme", group: "Interface", icon: "settings", when: true },
+			{ id: "demo", label: "Load developer demo", description: "Open a small StarRocks/MySQL mismatch scenario", group: "Session", icon: "rows", when: !(state.A || state.B) },
+			{ id: "reset", label: "Start a new comparison", description: "Clear both loaded exports and the active analysis", group: "Session", icon: "rows", when: Boolean(state.A || state.B) }
+		].filter(command => command.when);
+	}
+
+	function setCommandIndex(index) {
+		if (!state.commandMatches.length) { state.commandIndex = 0; return; }
+		state.commandIndex = (index + state.commandMatches.length) % state.commandMatches.length;
+		$$('.command-item', $("#commandResults")).forEach((button, buttonIndex) => {
+			const active = buttonIndex === state.commandIndex;
+			button.classList.toggle("active", active);
+			button.setAttribute("aria-selected", String(active));
+			if (active) button.scrollIntoView({ block: "nearest" });
+		});
+	}
+
+	function renderCommandPalette() {
+		const query = state.commandQuery.trim().toLocaleLowerCase();
+		const words = query.split(/\s+/).filter(Boolean);
+		state.commandMatches = commandCatalog().filter(command => words.every(word => `${command.label} ${command.description} ${command.group}`.toLocaleLowerCase().includes(word)));
+		state.commandIndex = clamp(state.commandIndex, 0, Math.max(0, state.commandMatches.length - 1));
+		const results = $("#commandResults");
+		results.innerHTML = state.commandMatches.length ? state.commandMatches.map((command, index) => `<button class="command-item ${index === state.commandIndex ? "active" : ""}" type="button" role="option" aria-selected="${index === state.commandIndex}" data-command="${esc(command.id)}"><span class="command-item-icon">${icon(command.icon, 15)}</span><span class="command-item-copy"><strong>${esc(command.label)}</strong><span>${esc(command.description)}</span></span><span class="command-item-meta"><span>${esc(command.group)}</span>${command.shortcut ? `<kbd>${esc(command.shortcut)}</kbd>` : ""}</span></button>`).join("") : '<div class="command-empty">No developer command matches this search.</div>';
+		$("#commandCount").textContent = `${fmt(state.commandMatches.length)} command${state.commandMatches.length === 1 ? "" : "s"}`;
+		$$('.command-item', results).forEach((button, index) => {
+			button.addEventListener("mouseenter", () => setCommandIndex(index));
+			button.addEventListener("click", () => executeCommand(button.dataset.command));
+		});
+	}
+
+	function openCommandPalette() {
+		const dialog = $("#commandDialog");
+		const openDialog = $("dialog[open]");
+		if (openDialog && openDialog !== dialog) { if (openDialog.id === "rowInspectorDialog") state.rowInspectorRequest++; openDialog.close(); }
+		state.commandQuery = "";
+		state.commandIndex = 0;
+		$("#commandInput").value = "";
+		renderCommandPalette();
+		if (!dialog.open) dialog.showModal();
+		setTimeout(() => $("#commandInput")?.focus(), 0);
+	}
+
+	function closeCommandPalette() {
+		const dialog = $("#commandDialog");
+		if (dialog.open) dialog.close();
+	}
+
+	function executeCommand(commandId) {
+		const result = state.lastResult && !state.lastResult.error ? state.lastResult : null;
+		closeCommandPalette();
+		switch (commandId) {
+			case "upload-starrocks": $("#slotA .file-input")?.click(); break;
+			case "upload-mysql": $("#slotB .file-input")?.click(); break;
+			case "swap": $("#swapBtn")?.click(); break;
+			case "detect-key": $("#autoKeyBtn")?.click(); break;
+			case "configure-key": $("#editKeyBtn")?.click(); break;
+			case "issues": openResultTab("issues"); break;
+			case "diagnostics": openResultTab("diagnostics"); break;
+			case "mismatches": openResultTab("changes", true); break;
+			case "row-inspector": if (result) openRowInspector(result); break;
+			case "pdf": $("#pdfReportBtn")?.click(); break;
+			case "bundle": if (result) exportDeveloperBundle(result); break;
+			case "copy-summary": if (result) copyText(summaryText(result), "Summary copied"); break;
+			case "copy-run": if (result) copyText(runIdFor(result), "Run ID copied"); break;
+			case "copy-contract": if (result) copyText(JSON.stringify(comparisonContract(result), null, 2), "Comparison contract copied"); break;
+			case "shortcuts": $("#shortcutDialog").showModal(); break;
+			case "theme": $("#themeBtn")?.click(); break;
+			case "demo": loadDemo(); break;
+			case "reset": resetAll(); break;
+		}
 	}
 
 	function showToast(message) {
@@ -702,6 +981,86 @@
 		return state.reportNameOverride.trim() || detectedReportName();
 	}
 
+	function artifactBaseName() {
+		return currentReportName().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "database-report";
+	}
+
+	function hashText(value, seed = 2166136261) {
+		let hash = seed >>> 0;
+		const text = String(value ?? "");
+		for (let index = 0; index < text.length; index++) { hash ^= text.charCodeAt(index); hash = Math.imul(hash, 16777619); }
+		return (hash >>> 0).toString(16).padStart(8, "0");
+	}
+
+	function runIdFor(result) {
+		if (!(state.A && state.B && result)) return "REC-PENDING";
+		const payload = JSON.stringify([
+			state.A.fileName, state.A.size, state.A.modified, state.A.sheetName, state.A.headerIndex, state.A.rows.length, state.A.columns.map(column => column.sourceLabel),
+			state.B.fileName, state.B.size, state.B.modified, state.B.sheetName, state.B.headerIndex, state.B.rows.length, state.B.columns.map(column => column.sourceLabel),
+			state.options.matchMode, state.options.headerMode, state.options.trimWhitespace, state.options.collapseWhitespace, state.options.caseSensitive,
+			state.options.numericEquivalent, state.options.numericTolerance, state.options.nullEquivalent,
+			result.keyPairs.map(pair => [pair.columnA.sourceLabel, pair.columnB.sourceLabel]),
+			result.mapping.common.filter(pair => state.options.ignoredColumns.has(pair.id)).map(pair => [pair.columnA.sourceLabel, pair.columnB.sourceLabel])
+		]);
+		return `REC-${hashText(payload).toUpperCase()}-${hashText(payload, 3339675911).slice(0, 4).toUpperCase()}`;
+	}
+
+	function comparisonContract(result) {
+		return {
+			contractVersion: CONTRACT_VERSION,
+			reportName: currentReportName(),
+			runId: runIdFor(result),
+			createdAt: new Date().toISOString(),
+			inputs: {
+				starrocks: { file: state.A.fileName, size: state.A.size, modified: state.A.modified, sheet: state.A.sheetName, headerRow: state.A.headerIndex + 1 },
+				mysql: { file: state.B.fileName, size: state.B.size, modified: state.B.modified, sheet: state.B.sheetName, headerRow: state.B.headerIndex + 1 }
+			},
+			options: {
+				matchMode: state.options.matchMode,
+				headerMode: state.options.headerMode,
+				trimWhitespace: state.options.trimWhitespace,
+				collapseWhitespace: state.options.collapseWhitespace,
+				caseSensitive: state.options.caseSensitive,
+				numericEquivalent: state.options.numericEquivalent,
+				numericTolerance: state.options.numericTolerance,
+				nullEquivalent: state.options.nullEquivalent
+			},
+			primaryKeyColumns: result.keyPairs.map(pair => ({ starrocks: pair.columnA.sourceLabel, mysql: pair.columnB.sourceLabel })),
+			ignoredColumns: result.mapping.common.filter(pair => state.options.ignoredColumns.has(pair.id)).map(pair => ({ starrocks: pair.columnA.sourceLabel, mysql: pair.columnB.sourceLabel }))
+		};
+	}
+
+	function applyComparisonContract(contract) {
+		const candidate = contract && contract.contract ? contract.contract : contract;
+		if (!candidate || typeof candidate !== "object" || !candidate.options) throw new Error("That JSON file does not contain a valid reconciler comparison contract.");
+		if (Number(candidate.contractVersion || 1) > CONTRACT_VERSION) throw new Error("This comparison contract was created by a newer reconciler version.");
+		if (["key", "position"].includes(candidate.options.matchMode)) state.options.matchMode = candidate.options.matchMode;
+		if (["strict", "relaxed"].includes(candidate.options.headerMode)) state.options.headerMode = candidate.options.headerMode;
+		for (const key of ["trimWhitespace", "collapseWhitespace", "caseSensitive", "numericEquivalent", "nullEquivalent"]) if (typeof candidate.options[key] === "boolean") state.options[key] = candidate.options[key];
+		if (Object.prototype.hasOwnProperty.call(candidate.options, "numericTolerance")) state.options.numericTolerance = candidate.options.numericTolerance;
+		state.options.numericTolerance = Math.max(0, Number(state.options.numericTolerance) || 0);
+		state.reportNameOverride = String(candidate.reportName || "").trim();
+		const mapping = getColumnMap();
+		const matches = (pair, item) => item && pair.columnA.sourceLabel === item.starrocks && pair.columnB.sourceLabel === item.mysql;
+		state.options.keyIds = mapping.common.filter(pair => (candidate.primaryKeyColumns || []).some(item => matches(pair, item))).map(pair => pair.id);
+		state.options.ignoredColumns = new Set(mapping.common.filter(pair => (candidate.ignoredColumns || []).some(item => matches(pair, item))).map(pair => pair.id));
+		state.activeTab = "issues";
+		state.query = "";
+		state.columnFilter = "all";
+		state.lastResult = null;
+		state.lastAnalysisSignature = "";
+		state.keyAnalysisCache = { signature: "", items: [] };
+		renderResults();
+	}
+
+	async function importComparisonContract(file) {
+		try {
+			const parsed = JSON.parse(await file.text());
+			applyComparisonContract(parsed);
+			showToast(`Comparison contract imported: ${file.name}`);
+		} catch (error) { showError(error && error.message ? error.message : "The comparison contract could not be imported."); }
+	}
+
 	function normalizeHeader(value) {
 		return String(value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
 	}
@@ -711,10 +1070,10 @@
 	}
 
 	function normalizeCell(value, forKey = false) {
-		let text = value === null || value === undefined ? "" : String(value);
-		text = text.replace(/\r\n?/g, "\n");
+		let text = value === null || value === undefined ? "" : typeof value === "string" ? value : String(value);
+		if (text.includes("\r")) text = text.replace(/\r\n?/g, "\n");
 		if (state.options.trimWhitespace || forKey) text = text.trim();
-		if (state.options.collapseWhitespace || forKey) text = text.replace(/\s+/g, " ");
+		if ((state.options.collapseWhitespace || forKey) && / {2,}|[^\S ]/.test(text)) text = text.replace(/\s+/g, " ");
 		if (!state.options.caseSensitive) text = text.toLocaleLowerCase();
 		return text;
 	}
@@ -853,7 +1212,8 @@
 			const sample = await file.slice(0, DELIMITER_SAMPLE_BYTES).text();
 			const delimiter = extension === "tsv" ? "\t" : detectDelimiter(sample);
 			const rows = await parseDelimitedStream(file, delimiter, onProgress);
-			return { kind: "matrix", sheets: { Data: rows }, sheetNames: ["Data"], delimiter };
+			const newline = sample.includes("\r\n") ? "CRLF" : sample.includes("\n") ? "LF" : "unknown";
+			return { kind: "matrix", sheets: { Data: rows }, sheetNames: ["Data"], delimiter, newline, bom: sample.charCodeAt(0) === 0xFEFF };
 		}
 		if (!["xlsx", "xls", "xlsm", "xlsb"].includes(extension)) throw new Error("Unsupported file type. Use .csv, .tsv, .xlsx, .xls, .xlsm, or .xlsb.");
 		if (typeof window.XLSX === "undefined") throw new Error("The Excel parser could not be loaded. Check your internet connection, or export the report as CSV and try again.");
@@ -955,11 +1315,11 @@
 			const source = await readSource(file, progress => {
 				const percent = Math.round(progress * 100);
 				state.loadingProgress[side] = percent;
-				if (percent >= lastRenderedProgress + 2 || percent === 100) { lastRenderedProgress = percent; renderSlot(side); }
+				if (percent >= lastRenderedProgress + 2 || percent === 100) { lastRenderedProgress = percent; renderSlot(side); updateRuntimeStatus(); }
 			});
 			const sheetName = source.sheetNames[0];
 			const matrix = sourceMatrix(source, sheetName);
-			const base = { loadId: ++state.reportSequence, fileName: file.name, size: file.size, modified: file.lastModified, source, sheetNames: source.sheetNames };
+			const base = { loadId: ++state.reportSequence, file, fileName: file.name, size: file.size, modified: file.lastModified, source, sheetNames: source.sheetNames };
 			state[side] = buildReport(base, sheetName, autoHeaderIndex(matrix));
 			state.reportNameOverride = "";
 			resetAnalysisState();
@@ -1014,6 +1374,9 @@
 		state.lastResult = null;
 		state.lastAnalysisSignature = "";
 		state.keyAnalysisCache = { signature: "", items: [] };
+		state.columnProfileCache.clear();
+		state.rowInspectorSql = "";
+		state.rowInspectorRequest++;
 	}
 
 	function renderSlot(side) {
@@ -1037,7 +1400,7 @@
 				<div class="file-footer"><div class="file-stats"><span><strong>${fmt(report.rows.length)}</strong> rows</span><span><strong>${fmt(report.columns.length)}</strong> cols</span>${issueCount ? `<span style="color:var(--amber)"><strong>${issueCount}</strong> header flags</span>` : ""}</div><label class="text-action">Replace<input class="hidden file-input" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.xlsb" /></label></div>
 			</div>`;
 		}
-		slot.innerHTML = `<div class="slot-inner"><div class="slot-label"><span class="slot-label-main"><i class="slot-dot"></i>${source.name} source</span>${report ? `<button class="text-action remove-report" type="button" aria-label="Remove ${source.name} extract" style="color:var(--${colorName})">Remove</button>` : ""}</div>${content}</div>`;
+		slot.innerHTML = `<div class="slot-inner"><div class="slot-label"><span class="slot-label-main"><i class="slot-dot"></i>${side === "B" ? "MySQL · source of truth" : "StarRocks · observed"}</span>${report ? `<button class="text-action remove-report" type="button" aria-label="Remove ${source.name} extract" style="color:var(--${colorName})">Remove</button>` : ""}</div>${content}</div>`;
 		const input = $(".file-input", slot);
 		if (input) input.addEventListener("change", event => { if (event.target.files && event.target.files[0]) loadFile(event.target.files[0], side); });
 		const sheet = $(".sheet-select", slot);
@@ -1053,6 +1416,7 @@
 		renderSlot("B");
 		$("#swapBtn").disabled = !(state.A && state.B);
 		$("#resetBtn").classList.toggle("hidden", !(state.A || state.B));
+		updateRuntimeStatus();
 	}
 
 	function wireDropZone(side) {
@@ -1164,9 +1528,197 @@
 	function keyDescriptor(row, side, keyPairs) {
 		const values = keyPairs.map(pair => row.cells[side === "A" ? pair.indexA : pair.indexB]);
 		const normalized = values.map(value => normalizeCell(value, true));
-		if (normalized.every(value => value === "")) return { token: null, display: "(null primary key)" };
+		if (normalized.every(value => value === "")) return { token: null, display: "(null primary key)", normalized };
 		const display = values.length === 1 ? String(values[0] ?? "") || "(blank)" : values.map((value, index) => `${keyPairs[index].columnA.sourceLabel}=${String(value ?? "") || "(blank)"}`).join(" · ");
-		return { token: JSON.stringify(normalized), display };
+		return { token: JSON.stringify(normalized), display, normalized };
+	}
+
+	function inspectorQuery(rawValue) {
+		const raw = String(rawValue ?? "").trim();
+		let tuple = null;
+		if (raw.startsWith("[") && raw.endsWith("]")) {
+			try {
+				const parsed = JSON.parse(raw);
+				if (Array.isArray(parsed)) tuple = parsed.map(value => normalizeCell(value, true));
+			} catch (_) {}
+		}
+		return { raw, normalized: normalizeCell(raw, true), tuple };
+	}
+
+	async function findRowsForInspector(report, side, keyPairs, rawQuery, onProgress) {
+		const query = inspectorQuery(rawQuery);
+		const exactRows = [];
+		const partialRows = [];
+		let exactTotal = 0;
+		let partialTotal = 0;
+		const rowCount = report.rows.length;
+		for (let index = 0; index < rowCount; index++) {
+			const row = report.rows[index];
+			const descriptor = keyDescriptor(row, side, keyPairs);
+			const values = descriptor.normalized;
+			const normalizedDisplay = normalizeCell(descriptor.display, true);
+			const joinedValues = values.join(" · ");
+			const tupleMatch = query.tuple && query.tuple.length === values.length && query.tuple.every((value, tupleIndex) => value === values[tupleIndex]);
+			const exact = Boolean(query.normalized) && (tupleMatch || normalizedDisplay === query.normalized || joinedValues === query.normalized || (values.length === 1 && values[0] === query.normalized));
+			if (exact) {
+				exactTotal++;
+				if (exactRows.length < 20) exactRows.push({ row, descriptor });
+			} else if (query.normalized && (normalizedDisplay.includes(query.normalized) || values.some(value => value.includes(query.normalized)))) {
+				partialTotal++;
+				if (partialRows.length < 20) partialRows.push({ row, descriptor });
+			}
+			if (index && index % 25000 === 0) {
+				if (onProgress) onProgress(index / Math.max(1, rowCount));
+				await new Promise(resolve => setTimeout(resolve, 0));
+			}
+		}
+		if (onProgress) onProgress(1);
+		return { exactRows, exactTotal, partialRows, partialTotal };
+	}
+
+	function selectInspectorPair(rowsA, rowsB, comparePairs) {
+		if (!rowsA.length || !rowsB.length) return { hitA: rowsA[0] || null, hitB: rowsB[0] || null };
+		let best = { hitA: rowsA[0], hitB: rowsB[0], score: Infinity };
+		for (const hitA of rowsA) {
+			for (const hitB of rowsB) {
+				const score = rowMismatchCount(hitA.row, hitB.row, comparePairs);
+				if (score < best.score) best = { hitA, hitB, score };
+				if (score === 0) return best;
+			}
+		}
+		return best;
+	}
+
+	function mysqlSqlLiteral(value) {
+		if (value === null || value === undefined) return "NULL";
+		const text = String(value).replace(/\\/g, "\\\\").replace(/\0/g, "\\0").replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\x1a/g, "\\Z").replace(/'/g, "''");
+		return `'${text}'`;
+	}
+
+	function mysqlKeyPredicate(hit, side, keyPairs) {
+		if (!hit) return "";
+		const clauses = keyPairs.map(pair => {
+			const value = hit.row.cells[side === "A" ? pair.indexA : pair.indexB];
+			const identifier = `\`${String(pair.columnB.sourceLabel).replace(/`/g, "``")}\``;
+			return value === null || value === undefined ? `${identifier} IS NULL` : `${identifier} = ${mysqlSqlLiteral(value)}`;
+		});
+		return clauses.length ? `WHERE ${clauses.join(" AND ")};` : "";
+	}
+
+	function buildRowInspectorView(result, rawQuery, lookupA, lookupB) {
+		const usePartial = !lookupA.exactTotal && !lookupB.exactTotal;
+		const rowsA = usePartial ? lookupA.partialRows : lookupA.exactRows;
+		const rowsB = usePartial ? lookupB.partialRows : lookupB.exactRows;
+		const totalA = usePartial ? lookupA.partialTotal : lookupA.exactTotal;
+		const totalB = usePartial ? lookupB.partialTotal : lookupB.exactTotal;
+		const matchLabel = usePartial ? "Partial key match" : "Exact key match";
+		const { hitA, hitB } = selectInspectorPair(rowsA, rowsB, result.comparePairs);
+		if (!hitA && !hitB) {
+			return {
+				html: `<div class="empty-state" style="min-height:170px"><div><div class="empty-state-icon">${icon("search", 18)}</div><h3>No matching key found</h3><p>${esc(rawQuery)} does not occur in either loaded export under the active key normalization.</p></div></div>`,
+				sql: "",
+				hint: "0 StarRocks matches · 0 MySQL matches"
+			};
+		}
+		const fieldResults = result.mapping.common.map(pair => {
+			const valueA = hitA ? hitA.row.cells[pair.indexA] : undefined;
+			const valueB = hitB ? hitB.row.cells[pair.indexB] : undefined;
+			let status = "different";
+			if (!hitA || !hitB) status = "missing";
+			else if (Object.is(valueA, valueB)) status = "exact";
+			else if (valuesEqual(valueA, valueB)) status = "equivalent";
+			return { pair, valueA, valueB, status };
+		});
+		const rank = { different: 0, missing: 0, equivalent: 1, exact: 2 };
+		fieldResults.sort((left, right) => rank[left.status] - rank[right.status]);
+		const counts = fieldResults.reduce((summary, item) => { summary[item.status] = (summary[item.status] || 0) + 1; return summary; }, {});
+		const sql = mysqlKeyPredicate(hitB || hitA, hitB ? "B" : "A", result.keyPairs);
+		const selectedKey = (hitB || hitA).descriptor.display;
+		const statusMeta = {
+			exact: ["green", "Exact"],
+			equivalent: ["amber", "Rule-equivalent"],
+			different: ["rose", "Different"],
+			missing: ["rose", "Missing side"]
+		};
+		const rows = fieldResults.map(item => {
+			const [color, label] = statusMeta[item.status];
+			return `<tr><td title="${esc(item.pair.label)}">${esc(item.pair.label)}</td><td>${hitA ? displayValue(item.valueA) : '<span class="empty-value">(row missing)</span>'}</td><td>${hitB ? displayValue(item.valueB) : '<span class="empty-value">(row missing)</span>'}</td><td><span class="status-pill ${color}">${label}</span></td></tr>`;
+		}).join("");
+		const parity = hitA && hitB ? `${counts.different || 0} different · ${counts.equivalent || 0} rule-equivalent · ${counts.exact || 0} exact` : "Row exists on one side only";
+		return {
+			html: `<div class="inspector-summary">
+				<div><span>Lookup</span><strong>${esc(matchLabel)}</strong></div>
+				<div><span>Matched key</span><strong>${esc(selectedKey)}</strong></div>
+				<div><span>StarRocks</span><strong>${totalA ? `row ${fmt(hitA.row.rowNumber)} · ${fmt(totalA)} match${totalA === 1 ? "" : "es"}` : "not found"}</strong></div>
+				<div><span>MySQL · truth</span><strong>${totalB ? `row ${fmt(hitB.row.rowNumber)} · ${fmt(totalB)} match${totalB === 1 ? "" : "es"}` : "not found"}</strong></div>
+			</div>
+			<div class="inspector-sql"><span>MySQL key predicate</span><code>${esc(sql || "No predicate available")}</code></div>
+			<div class="table-wrap inspector-table"><table><thead><tr><th>Mapped field</th><th>StarRocks</th><th>MySQL · source of truth</th><th>Parity</th></tr></thead><tbody>${rows}</tbody></table></div>`,
+			sql,
+			hint: parity
+		};
+	}
+
+	function resetRowInspectorView() {
+		state.rowInspectorSql = "";
+		const input = $("#rowInspectorInput");
+		const body = $("#rowInspectorBody");
+		const copy = $("#copyInspectorSqlBtn");
+		if (input) input.value = "";
+		if (copy) copy.disabled = true;
+		if (body) body.innerHTML = `<div class="empty-state" style="min-height:150px"><div><div class="empty-state-icon">${icon("search", 18)}</div><h3>Enter a primary key</h3><p>The lookup scans StarRocks and MySQL locally and shows exact, normalized, and different fields.</p></div></div>`;
+		const hint = $("#rowInspectorHint");
+		if (hint) hint.textContent = "MySQL values remain the source-of-truth side.";
+	}
+
+	function openRowInspector(result) {
+		if (!result || state.options.matchMode !== "key" || !result.keyPairs.length) { showError("Choose primary-key matching and at least one key column before opening the Row Inspector."); return; }
+		resetRowInspectorView();
+		const keyNames = result.keyPairs.map(pair => pair.columnB.sourceLabel);
+		$("#rowInspectorLabel").textContent = `Primary / composite key · ${keyNames.join(" + ")}`;
+		$("#rowInspectorInput").placeholder = result.keyPairs.length === 1 ? `Paste ${keyNames[0]}` : `Paste values or JSON tuple, e.g. ["value1","value2"]`;
+		$("#rowInspectorDialog").showModal();
+		setTimeout(() => $("#rowInspectorInput")?.focus(), 0);
+	}
+
+	async function runRowInspector() {
+		const result = state.lastResult;
+		const input = $("#rowInspectorInput");
+		const body = $("#rowInspectorBody");
+		const button = $("#runRowInspectorBtn");
+		const hint = $("#rowInspectorHint");
+		const rawQuery = String(input?.value || "").trim();
+		if (!result || !result.keyPairs.length) { showError("The active comparison does not have a primary key."); return; }
+		if (!rawQuery) { if (hint) hint.textContent = "Enter a key value to inspect."; input?.focus(); return; }
+		const requestId = ++state.rowInspectorRequest;
+		state.rowInspectorSql = "";
+		if (button) button.disabled = true;
+		if ($("#copyInspectorSqlBtn")) $("#copyInspectorSqlBtn").disabled = true;
+		if (body) body.innerHTML = '<div class="inspector-loading">Scanning both exports…<br>0% complete</div>';
+		const progress = { A: 0, B: 0 };
+		const updateProgress = (side, value) => {
+			progress[side] = value;
+			if (requestId !== state.rowInspectorRequest) return;
+			const percentDone = Math.round((progress.A + progress.B) * 50);
+			const loading = $("#rowInspectorBody .inspector-loading");
+			if (loading) loading.innerHTML = `Scanning both exports…<br>${percentDone}% complete`;
+		};
+		try {
+			const [lookupA, lookupB] = await Promise.all([
+				findRowsForInspector(state.A, "A", result.keyPairs, rawQuery, value => updateProgress("A", value)),
+				findRowsForInspector(state.B, "B", result.keyPairs, rawQuery, value => updateProgress("B", value))
+			]);
+			if (requestId !== state.rowInspectorRequest) return;
+			const view = buildRowInspectorView(result, rawQuery, lookupA, lookupB);
+			state.rowInspectorSql = view.sql;
+			body.innerHTML = view.html;
+			hint.textContent = view.hint;
+			$("#copyInspectorSqlBtn").disabled = !view.sql;
+		} catch (error) {
+			if (requestId === state.rowInspectorRequest) body.innerHTML = `<div class="notice error">${esc(error && error.message ? error.message : "The row lookup could not be completed.")}</div>`;
+		} finally {
+			if (requestId === state.rowInspectorRequest && button) button.disabled = false;
+		}
 	}
 
 	function rowFingerprint(row, side, comparePairs) {
@@ -1260,9 +1812,56 @@
 		const onlyA = [];
 		const onlyB = [];
 		const quality = { duplicateGroupsA: [], duplicateGroupsB: [], blankKeysA: [], blankKeysB: [], pairingFallbacks: 0 };
+		const strictAudit = {
+			comparedCells: 0,
+			mismatchedCells: 0,
+			mismatchedRows: 0,
+			rowOrderMismatches: 0,
+			rowOrderSample: null,
+			columnCounts: new Map(),
+			columnPatterns: new Map(),
+			patternCounts: new Map(),
+			sampleByPattern: new Map(),
+			headerSamples: [],
+			samples: []
+		};
 		const acceptMatchedPair = (rowA, rowB, displayKey, token) => {
 			const compared = compareRowPair(rowA, rowB, displayKey, token, comparePairs);
 			matchedRowCount++;
+			let strictRowMismatch = false;
+			for (const pair of mapping.common) {
+				const valueA = rowA.cells[pair.indexA];
+				const valueB = rowB.cells[pair.indexB];
+				strictAudit.comparedCells++;
+				if (String(valueA ?? "") === String(valueB ?? "")) continue;
+				strictRowMismatch = true;
+				strictAudit.mismatchedCells++;
+				const pattern = classifyParityMismatch(valueA, valueB);
+				strictAudit.patternCounts.set(pattern, (strictAudit.patternCounts.get(pattern) || 0) + 1);
+				strictAudit.columnCounts.set(pair.id, (strictAudit.columnCounts.get(pair.id) || 0) + 1);
+				let patterns = strictAudit.columnPatterns.get(pair.id);
+				if (!patterns) { patterns = new Map(); strictAudit.columnPatterns.set(pair.id, patterns); }
+				patterns.set(pattern, (patterns.get(pattern) || 0) + 1);
+				const sample = {
+					key: displayKey,
+					column: pair.label,
+					columnId: pair.id,
+					mysql: valueB,
+					starrocks: valueA,
+					pattern,
+					rowNumberA: rowA.rowNumber,
+					rowNumberB: rowB.rowNumber
+				};
+				if (!strictAudit.sampleByPattern.has(pattern)) strictAudit.sampleByPattern.set(pattern, sample);
+				if (strictAudit.samples.length < 8) strictAudit.samples.push(sample);
+			}
+			if (strictRowMismatch) strictAudit.mismatchedRows++;
+			const ordinalA = rowA.rowNumber - state.A.headerIndex;
+			const ordinalB = rowB.rowNumber - state.B.headerIndex;
+			if (ordinalA !== ordinalB) {
+				strictAudit.rowOrderMismatches++;
+				if (!strictAudit.rowOrderSample) strictAudit.rowOrderSample = { key: displayKey, mysqlRow: rowB.rowNumber, starrocksRow: rowA.rowNumber };
+			}
 			if (compared.changes.length) {
 				changedRows.push(compared);
 				changedCellCount += compared.changes.length;
@@ -1326,7 +1925,22 @@
 		const coverage = totalRows ? Math.round(matchedRowCount / totalRows * 100) : 100;
 		const comparedCells = matchedRowCount * comparePairs.length;
 		const cellAccuracy = comparedCells ? Math.round((1 - changedCellCount / comparedCells) * 10000) / 100 : null;
-		return { mapping, keyPairs, comparePairs, matchedRowCount, changedRows, changedCellCount, perfectRows, onlyA, onlyB, quality, score, coverage, cellAccuracy, totalRows, columnCounts };
+		const maximumColumns = Math.max(state.A.columns.length, state.B.columns.length);
+		let headerMismatches = 0;
+		for (let index = 0; index < maximumColumns; index++) {
+			const columnA = state.A.columns[index];
+			const columnB = state.B.columns[index];
+			const headerA = columnA ? columnA.blankHeader ? "" : columnA.sourceLabel : null;
+			const headerB = columnB ? columnB.blankHeader ? "" : columnB.sourceLabel : null;
+			if (headerA !== headerB) {
+				headerMismatches++;
+				if (strictAudit.headerSamples.length < 4) strictAudit.headerSamples.push({ position: index + 1, mysql: headerB ?? "(missing)", starrocks: headerA ?? "(missing)" });
+			}
+		}
+		strictAudit.headerMismatches = headerMismatches;
+		strictAudit.cellParity = strictAudit.comparedCells ? Math.round((1 - strictAudit.mismatchedCells / strictAudit.comparedCells) * 1000000) / 10000 : null;
+		strictAudit.contentReady = !strictAudit.mismatchedCells && !strictAudit.rowOrderMismatches && !headerMismatches && !onlyA.length && !onlyB.length;
+		return { mapping, keyPairs, comparePairs, matchedRowCount, changedRows, changedCellCount, perfectRows, onlyA, onlyB, quality, score, coverage, cellAccuracy, totalRows, columnCounts, strictAudit };
 	}
 
 	function verdictFor(result) {
@@ -1345,6 +1959,7 @@
 	function renderConfig(mapping, result) {
 		const keyPairs = mapping.common.filter(pair => state.options.keyIds.includes(pair.id));
 		const keyChips = keyPairs.map(pair => `<span class="key-chip" title="${esc(pair.label)}">${esc(pair.label)}</span>`).join("");
+		const runId = result && !result.error ? runIdFor(result) : "REC-PENDING";
 		return `<section class="panel config-panel">
 			<div class="report-identity">
 				<span class="report-identity-label">Report identity</span>
@@ -1362,6 +1977,19 @@
 				<span class="tag" title="The last full comparison reused cached results until a rule, key, sheet, or report changes">${state.lastComputeMs < 1000 ? `${Math.round(state.lastComputeMs)} ms` : `${(state.lastComputeMs / 1000).toFixed(1)} s`} analysis</span>
 				<span class="tag">${fmt(result.comparePairs.length)} compared columns</span>
 				<span class="tag">${state.options.headerMode === "strict" ? "Exact" : "Relaxed"} headers</span>
+			</div>
+			<div class="developer-bar">
+				<span class="dev-label"><i></i>Developer console</span>
+				<span class="dev-separator"></span>
+				<div class="run-identity"><span>Run ID</span><code>${esc(runId)}</code></div>
+				<button class="btn small ghost" id="copyRunIdBtn" type="button" ${runId === "REC-PENDING" ? "disabled" : ""}>${icon("copy", 11)} Copy</button>
+				<span class="dev-separator"></span>
+				<button class="btn small" id="rowInspectorBtn" type="button" ${state.options.matchMode !== "key" || !result.keyPairs.length ? "disabled" : ""}>${icon("search", 11)} Inspect row</button>
+				<button class="btn small ghost" id="copyContractQuickBtn" type="button">${icon("copy", 11)} Copy contract</button>
+				<button class="btn small ghost" id="exportContractBtn" type="button">Export contract</button>
+				<button class="btn small ghost" id="importContractBtn" type="button">Import contract</button>
+				<input class="hidden" id="contractImportInput" type="file" accept="application/json,.json" />
+				<button class="btn small ghost" id="shortcutHelpBtn" type="button" title="Keyboard shortcuts">Shortcuts</button>
 			</div>
 			<details class="rules"><summary><span>${icon("settings", 13)} &nbsp;Normalization contract</span><span>NULLs, whitespace, casing, decimals, and schema</span></summary>
 				<div class="rules-grid">
@@ -1383,6 +2011,7 @@
 
 	function renderSummary(result) {
 		const verdict = verdictFor(result);
+		const issueCategoryCount = buildParityIssues(result).filter(issue => issue.severity !== "Info").length;
 		const denominator = result.perfectRows + result.changedRows.length + result.onlyA.length + result.onlyB.length || 1;
 		const duplicateCount = result.quality.duplicateGroupsA.length + result.quality.duplicateGroupsB.length;
 		const blankCount = result.quality.blankKeysA.length + result.quality.blankKeysB.length;
@@ -1394,8 +2023,8 @@
 		return `${insights.length ? `<div class="insight-row">${insights.join("")}</div>` : ""}<section class="panel summary-panel" style="--verdict-color:${verdict.color}">
 			<div class="summary-top">
 				<div class="score-ring" style="--score:${result.score}"><strong>${result.score}%</strong></div>
-				<div class="summary-copy"><h2>${verdict.title}</h2><p>${verdict.detail}</p><div class="summary-badges"><span class="tag">${state.options.matchMode === "key" ? `${result.keyPairs.length}-column PK` : "ordered rows"}</span><span class="tag">${result.coverage}% key coverage</span>${result.cellAccuracy !== null ? `<span class="tag">${result.cellAccuracy}% cell parity</span>` : ""}</div></div>
-				<div class="summary-actions"><button class="btn primary" id="pdfReportBtn" type="button">${icon("file", 13)} Download parity PDF</button><button class="btn" id="copySummaryBtn" type="button">${icon("copy", 13)} Copy diagnostics</button><details class="export-wrap"><summary class="btn">${icon("download", 13)} Export</summary><div class="export-menu"><button type="button" data-export="changes">${icon("download", 12)} Mismatched cells CSV</button><button type="button" data-export="onlyA">${icon("download", 12)} StarRocks-only rows</button><button type="button" data-export="onlyB">${icon("download", 12)} MySQL-only rows</button><button type="button" data-export="json">${icon("download", 12)} Audit manifest JSON</button></div></details></div>
+				<div class="summary-copy"><h2>${verdict.title}</h2><p>${verdict.detail}</p><div class="summary-badges"><span class="tag">${state.options.matchMode === "key" ? `${result.keyPairs.length}-column PK` : "ordered rows"}</span><span class="tag">${result.coverage}% key coverage</span>${result.cellAccuracy !== null ? `<span class="tag">${result.cellAccuracy}% normalized parity</span>` : ""}${result.strictAudit?.cellParity !== null ? `<span class="tag">${result.strictAudit.cellParity}% strict parity</span>` : ""}<span class="tag">${fmt(issueCategoryCount)} issue categories</span></div></div>
+				<div class="summary-actions"><button class="btn primary" id="pdfReportBtn" type="button" title="Includes a streamed exact-byte comparison of both uploaded files">${icon("file", 13)} Download compact parity PDF</button><button class="btn" id="copySummaryBtn" type="button">${icon("copy", 13)} Copy diagnostics</button><details class="export-wrap"><summary class="btn">${icon("download", 13)} Export</summary><div class="export-menu"><button type="button" data-export="bundle">${icon("download", 12)} Reproduction bundle JSON</button><button type="button" data-export="issues">${icon("download", 12)} Issue ledger CSV</button><button type="button" data-export="changes">${icon("download", 12)} Mismatched cells CSV</button><button type="button" data-export="onlyA">${icon("download", 12)} StarRocks-only rows</button><button type="button" data-export="onlyB">${icon("download", 12)} MySQL-only rows</button><button type="button" data-export="json">${icon("download", 12)} Audit manifest JSON</button></div></details></div>
 			</div>
 			<div class="stat-grid">
 				${statCard("Perfect rows", result.perfectRows, "var(--green)", "identical across compared columns")}
@@ -1412,7 +2041,10 @@
 
 	function renderTabs(result) {
 		const qualityCount = result.quality.duplicateGroupsA.length + result.quality.duplicateGroupsB.length + result.quality.blankKeysA.length + result.quality.blankKeysB.length + state.A.headerIssues.blank.length + state.A.headerIssues.duplicates.length + state.B.headerIssues.blank.length + state.B.headerIssues.duplicates.length;
+		const issueCount = buildParityIssues(result).filter(issue => issue.severity !== "Info").length;
 		const tabs = [
+			["issues", "Issue ledger", issueCount],
+			["diagnostics", "Diagnostics", result.mapping.common.length],
 			["changes", "Mismatches", result.changedRows.length],
 			["onlyA", "StarRocks only", result.onlyA.length],
 			["onlyB", "MySQL only", result.onlyB.length],
@@ -1428,6 +2060,7 @@
 			workspace.classList.add("hidden");
 			workspace.innerHTML = "";
 			state.lastResult = null;
+			updateRuntimeStatus();
 			return;
 		}
 		workspace.classList.remove("hidden");
@@ -1437,6 +2070,7 @@
 			workspace.innerHTML = `<div class="notice error">${icon("warning", 16)}<div><strong>No common columns were found.</strong><br>Check each header-row setting, select the correct worksheets, or switch column-header matching to relaxed mode.</div></div><section class="panel config-panel" style="margin-top:14px"><details class="rules" open><summary><span>${icon("settings", 13)} &nbsp;Column matching</span></summary><div class="rules-grid"><div class="rule-item"><label class="field-label" for="headerModeSelect">Column header matching</label><select class="select" id="headerModeSelect"><option value="relaxed" ${state.options.headerMode === "relaxed" ? "selected" : ""}>Relaxed case + separators</option><option value="strict" ${state.options.headerMode === "strict" ? "selected" : ""}>Exact header text</option></select></div></div></details></section>`;
 			const headerMode = $("#headerModeSelect");
 			if (headerMode) headerMode.addEventListener("change", event => { state.options.headerMode = event.target.value; resetAnalysisState(); renderResults(); });
+			updateRuntimeStatus();
 			return;
 		}
 		const signature = analysisSignature(mapping);
@@ -1452,11 +2086,13 @@
 		if (result.error) {
 			workspace.innerHTML = `${renderConfig(mapping, result)}<div class="notice error">${icon("warning", 16)}<span>${esc(result.error)}</span></div>`;
 			wireConfigEvents(mapping);
+			updateRuntimeStatus();
 			return;
 		}
 		workspace.innerHTML = `${renderConfig(mapping, result)}${renderSummary(result)}${renderTabs(result)}`;
 		renderTabBody(result);
 		wireWorkspaceEvents(mapping, result);
+		updateRuntimeStatus();
 	}
 
 	function currentChangedRows(result) {
@@ -1570,6 +2206,87 @@
 		${headerA + headerB ? `<div class="section-title"><h3>Export header diagnostics</h3><span>Adjust the header row in either source card</span></div><div class="pill-cloud">${state.A.headerIssues.blank.map(column => `<span class="column-pill a">StarRocks · blank header at column ${column.index + 1}</span>`).join("")}${state.A.headerIssues.duplicates.map(column => `<span class="column-pill a">StarRocks · duplicate ${esc(column.label)}</span>`).join("")}${state.B.headerIssues.blank.map(column => `<span class="column-pill b">MySQL · blank header at column ${column.index + 1}</span>`).join("")}${state.B.headerIssues.duplicates.map(column => `<span class="column-pill b">MySQL · duplicate ${esc(column.label)}</span>`).join("")}</div>` : ""}`;
 	}
 
+	function renderIssues(result) {
+		const issues = buildParityIssues(result);
+		const counts = issueSeverityCounts(issues);
+		return `<div class="toolbar"><span class="result-count">${fmt(issues.length)} detected issue categor${issues.length === 1 ? "y" : "ies"} · strict values include columns ignored by the normalized view</span><span class="toolbar-spacer"></span><button class="btn small" type="button" data-export="issues">${icon("download", 12)} Export issue ledger</button></div>
+		<div class="quality-grid">
+			<div class="quality-card"><strong style="color:var(--rose)">${fmt(counts.Critical)}</strong><span>critical categories</span></div>
+			<div class="quality-card"><strong style="color:var(--amber)">${fmt(counts.Major)}</strong><span>major categories</span></div>
+			<div class="quality-card"><strong style="color:var(--sky)">${fmt(counts.Minor)}</strong><span>minor categories</span></div>
+			<div class="quality-card"><strong style="color:var(--green)">${result.strictAudit?.cellParity === null ? "N/A" : `${result.strictAudit?.cellParity ?? result.cellAccuracy}%`}</strong><span>strict raw-cell parity</span></div>
+		</div>
+		<div class="table-wrap"><table><thead><tr><th>Severity</th><th>Issue category</th><th>Count</th><th>Scope</th><th>Representative example</th></tr></thead><tbody>${issues.map(issue => `<tr><td><span class="status-pill ${issue.severity.toLowerCase()}">${esc(issue.severity)}</span></td><td>${esc(issue.category)}</td><td class="issue-count">${fmt(issue.count)}</td><td>${esc(issue.scope)}</td><td class="issue-example">${esc(issue.example)}</td></tr>`).join("")}</tbody></table></div>`;
+	}
+
+	function inferProfileType(value) {
+		const text = String(value ?? "").trim();
+		if (!text) return "empty";
+		if (/^(?:true|false|yes|no|y|n)$/i.test(text)) return "boolean";
+		if (parseStrictNumber(text) !== null) return "number";
+		if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}(?:[ T].*)?$/.test(text)) return "datetime";
+		return "text";
+	}
+
+	function profileColumn(report, columnIndex) {
+		const cacheKey = `${report.loadId}:${report.sheetName}:${report.headerIndex}:${columnIndex}`;
+		if (state.columnProfileCache.has(cacheKey)) return state.columnProfileCache.get(cacheKey);
+		const totalRows = report.rows.length;
+		const sampleCount = Math.min(PROFILE_SAMPLE_ROWS, totalRows);
+		const types = { empty: 0, boolean: 0, number: 0, datetime: 0, text: 0 };
+		const distinct = new Set();
+		let maximumLength = 0;
+		for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+			const rowIndex = sampleCount === totalRows ? sampleIndex : Math.floor(sampleIndex * (totalRows - 1) / Math.max(1, sampleCount - 1));
+			const value = report.rows[rowIndex]?.cells[columnIndex];
+			const text = String(value ?? "");
+			const type = inferProfileType(value);
+			types[type]++;
+			if (type !== "empty" && distinct.size <= PROFILE_SAMPLE_ROWS) distinct.add(text);
+			if (text.length > maximumLength) maximumLength = text.length;
+		}
+		const populated = sampleCount - types.empty;
+		const dominant = Object.entries(types).filter(([name]) => name !== "empty").sort((left, right) => right[1] - left[1])[0]?.[0] || "empty";
+		const profile = {
+			sampleCount,
+			dominant,
+			emptyRate: sampleCount ? types.empty / sampleCount : 0,
+			distinctRate: populated ? Math.min(distinct.size, populated) / populated : 0,
+			maximumLength,
+			types
+		};
+		state.columnProfileCache.set(cacheKey, profile);
+		return profile;
+	}
+
+	function diagnosticRows(result) {
+		return result.mapping.common.map(pair => {
+			const starrocks = profileColumn(state.A, pair.indexA);
+			const mysql = profileColumn(state.B, pair.indexB);
+			const emptyDelta = Math.abs(starrocks.emptyRate - mysql.emptyRate);
+			const typeMatch = starrocks.dominant === mysql.dominant;
+			const status = !typeMatch ? "type drift" : emptyDelta > .01 ? "empty-rate drift" : starrocks.maximumLength !== mysql.maximumLength ? "length drift" : "aligned";
+			return { pair, starrocks, mysql, status };
+		});
+	}
+
+	function renderDiagnostics(result) {
+		const rows = diagnosticRows(result);
+		const driftCount = rows.filter(row => row.status !== "aligned").length;
+		const totalInput = (state.A.size || 0) + (state.B.size || 0);
+		const throughput = state.lastComputeMs > 0 ? Math.round((state.A.rows.length + state.B.rows.length) / (state.lastComputeMs / 1000)) : 0;
+		const runId = runIdFor(result);
+		return `<div class="toolbar"><span class="diagnostic-code">${esc(runId)}</span><span class="result-count">Deterministic for these inputs and comparison rules</span><span class="toolbar-spacer"></span><button class="btn small" id="copyDiagRunIdBtn" type="button">${icon("copy", 12)} Copy run ID</button><button class="btn small" id="copyContractBtn" type="button">Copy contract</button><button class="btn small primary" id="exportBundleBtn" type="button">${icon("download", 12)} Reproduction bundle</button></div>
+		<div class="quality-grid">
+			<div class="quality-card"><strong style="color:var(--brand)">${state.lastComputeMs < 1000 ? `${Math.round(state.lastComputeMs)} ms` : `${(state.lastComputeMs / 1000).toFixed(1)} s`}</strong><span>comparison time</span></div>
+			<div class="quality-card"><strong style="color:var(--green)">${throughput ? `${fmt(throughput)}/s` : "N/A"}</strong><span>rows processed</span></div>
+			<div class="quality-card"><strong style="color:var(--sky)">${formatBytes(totalInput)}</strong><span>combined input size</span></div>
+			<div class="quality-card"><strong style="color:${driftCount ? "var(--amber)" : "var(--green)"}">${fmt(driftCount)}</strong><span>profile drift columns</span></div>
+		</div>
+		<div class="table-wrap"><table><thead><tr><th>Mapped column</th><th>StarRocks profile</th><th>MySQL profile</th><th>Empty SR / MY</th><th>Distinct SR / MY</th><th>Max length SR / MY</th><th>Status</th></tr></thead><tbody>${rows.map(row => `<tr><td><div class="column-map"><span>${esc(row.pair.columnA.label)}</span><span class="arrow">→</span><span>${esc(row.pair.columnB.label)}</span></div></td><td>${esc(row.starrocks.dominant)} <span class="dim">(${fmt(row.starrocks.sampleCount)} sampled)</span></td><td>${esc(row.mysql.dominant)} <span class="dim">(${fmt(row.mysql.sampleCount)} sampled)</span></td><td>${percent(row.starrocks.emptyRate)} / ${percent(row.mysql.emptyRate)}</td><td>${percent(row.starrocks.distinctRate)} / ${percent(row.mysql.distinctRate)}</td><td>${fmt(row.starrocks.maximumLength)} / ${fmt(row.mysql.maximumLength)}</td><td><span class="status-pill ${row.status === "aligned" ? "green" : "amber"}">${esc(row.status)}</span></td></tr>`).join("")}</tbody></table></div>
+		<div class="diagnostic-meta"><div><span>Parser</span><code>${state.A.source.kind === "matrix" && state.B.source.kind === "matrix" ? "Streaming delimited-text parser" : "SheetJS workbook parser"}</code></div><div><span>Comparison scope</span><code>${fmt(result.mapping.common.length)} mapped columns · ${fmt(result.matchedRowCount)} matched rows · strict audit includes ignored columns</code></div><div><span>Runtime</span><code>${esc(navigator.userAgent || "Browser runtime")}</code></div></div>`;
+	}
+
 	function renderTabBody(result) {
 		const panel = $("#tabPanel");
 		if (!panel) return;
@@ -1577,6 +2294,8 @@
 		else if (state.activeTab === "onlyA") panel.innerHTML = renderOnly(result, "A");
 		else if (state.activeTab === "onlyB") panel.innerHTML = renderOnly(result, "B");
 		else if (state.activeTab === "columns") panel.innerHTML = renderColumns(result);
+		else if (state.activeTab === "issues") panel.innerHTML = renderIssues(result);
+		else if (state.activeTab === "diagnostics") panel.innerHTML = renderDiagnostics(result);
 		else panel.innerHTML = renderQuality(result);
 		wireTabEvents(result);
 	}
@@ -1629,6 +2348,20 @@
 
 	function wireWorkspaceEvents(mapping, result) {
 		wireConfigEvents(mapping);
+		const copyRunId = $("#copyRunIdBtn");
+		if (copyRunId) copyRunId.addEventListener("click", () => copyText(runIdFor(result), "Run ID copied"));
+		const rowInspector = $("#rowInspectorBtn");
+		if (rowInspector) rowInspector.addEventListener("click", () => openRowInspector(result));
+		const copyContractQuick = $("#copyContractQuickBtn");
+		if (copyContractQuick) copyContractQuick.addEventListener("click", () => copyText(JSON.stringify(comparisonContract(result), null, 2), "Comparison contract copied"));
+		const exportContract = $("#exportContractBtn");
+		if (exportContract) exportContract.addEventListener("click", () => downloadBlob(JSON.stringify(comparisonContract(result), null, 2), "application/json", `${artifactBaseName()}-comparison-contract.json`));
+		const importContract = $("#importContractBtn");
+		const contractInput = $("#contractImportInput");
+		if (importContract && contractInput) importContract.addEventListener("click", () => contractInput.click());
+		if (contractInput) contractInput.addEventListener("change", event => { const file = event.target.files && event.target.files[0]; if (file) importComparisonContract(file); event.target.value = ""; });
+		const shortcutHelp = $("#shortcutHelpBtn");
+		if (shortcutHelp) shortcutHelp.addEventListener("click", () => $("#shortcutDialog").showModal());
 		$$('[data-goto]').forEach(button => button.addEventListener("click", () => { state.activeTab = button.dataset.goto; state.query = ""; renderResults(); $(".tabs-shell")?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
 		$$('[data-tab]').forEach(button => button.addEventListener("click", () => { state.activeTab = button.dataset.tab; state.query = ""; state.pages[state.activeTab] = 1; renderResults(); }));
 		const copySummary = $("#copySummaryBtn");
@@ -1663,6 +2396,12 @@
 			result.mapping.common.forEach(pair => { if (!keyIds.has(pair.id) && !(result.columnCounts.get(pair.id) || 0)) state.options.ignoredColumns.add(pair.id); });
 			renderResults();
 		});
+		const copyDiagRunId = $("#copyDiagRunIdBtn");
+		if (copyDiagRunId) copyDiagRunId.addEventListener("click", () => copyText(runIdFor(result), "Run ID copied"));
+		const copyContract = $("#copyContractBtn");
+		if (copyContract) copyContract.addEventListener("click", () => copyText(JSON.stringify(comparisonContract(result), null, 2), "Comparison contract copied"));
+		const exportBundle = $("#exportBundleBtn");
+		if (exportBundle) exportBundle.addEventListener("click", () => exportDeveloperBundle(result));
 		$$('#tabPanel [data-export]').forEach(button => button.addEventListener("click", () => handleExport(button.dataset.export, result)));
 	}
 
@@ -1766,50 +2505,34 @@
 			const utc = Date.UTC(year, month - 1, day, hour, minute, second, millisecond);
 			const checked = new Date(utc);
 			if (checked.getUTCFullYear() !== year || checked.getUTCMonth() !== month - 1 || checked.getUTCDate() !== day) return null;
-			if (!zoneText || zoneText.toUpperCase() === "Z") return utc;
+			const shape = { hasTime: Boolean(match[4]), hasZone: Boolean(zoneText) };
+			if (!zoneText || zoneText.toUpperCase() === "Z") return { instant: utc, ...shape };
 			const zone = zoneText.match(/^([+-])(\d{2}):?(\d{2})$/);
 			if (!zone) return null;
 			const offsetHours = Number(zone[2]);
 			const offsetMinutes = Number(zone[3]);
 			if (offsetHours > 23 || offsetMinutes > 59) return null;
 			const offset = (offsetHours * 60 + offsetMinutes) * 60000;
-			return utc - (zone[1] === "+" ? offset : -offset);
+			return { instant: utc - (zone[1] === "+" ? offset : -offset), ...shape };
 		};
 		const starrocksTime = parseComparableDate(starrocks);
 		const mysqlTime = parseComparableDate(mysql);
-		if (starrocksTime !== null && starrocksTime === mysqlTime) return "Date/time formatting";
+		if (starrocksTime && mysqlTime && starrocksTime.instant === mysqlTime.instant && starrocksTime.hasTime === mysqlTime.hasTime && starrocksTime.hasZone === mysqlTime.hasZone) return "Date/time formatting";
 		return "Value divergence";
-	}
-
-	function parityRecommendation(result, dominantPattern) {
-		if (result.onlyB.length) return "Verify StarRocks ingestion filters, load latency, and failed batches for the missing MySQL keys.";
-		if (result.mapping.onlyB.length || result.mapping.onlyA.length) return "Align both SELECT projections, aliases, and data types before rerunning parity.";
-		const recommendations = {
-			"Leading apostrophe": "Remove text-forcing prefixes in the StarRocks export and preserve the MySQL text representation.",
-			"Trailing apostrophe": "Remove trailing text artifacts in the StarRocks export serialization.",
-			"Quote wrapping": "Align CSV quoting and field serialization between both export pipelines.",
-			"Edge whitespace": "Apply consistent TRIM behavior at the export boundary.",
-			"Whitespace formatting": "Normalize repeated whitespace and line breaks in the StarRocks projection.",
-			"Letter casing": "Align collation/case transformation or explicitly normalize casing in both SELECT queries.",
-			"Numeric formatting": "Align DECIMAL casts, scale, grouping, and string serialization with MySQL.",
-			"Leading zero padding": "Use the same identifier type and zero-padding contract in both systems.",
-			"Boolean encoding": "Standardize boolean serialization, for example 0/1 or false/true, across both exports.",
-			"Date/time formatting": "Align timezone, precision, and timestamp formatting with the MySQL source-of-truth query.",
-			"NULL representation": "Standardize NULL and empty-value serialization across both exports.",
-			"Hidden control characters": "Strip non-printing control characters in the StarRocks export path.",
-			"HTML entity encoding": "Decode or consistently encode HTML entities before comparison.",
-			"Unicode normalization": "Apply the same Unicode normalization form to both export queries.",
-			"Value divergence": "Trace the top mismatched fields through StarRocks ingestion and transformation logic."
-		};
-		return recommendations[dominantPattern] || "Align StarRocks output with MySQL, then rerun the parity validation.";
 	}
 
 	function analyzeParity(result) {
 		if (result.pdfAnalysis) return result.pdfAnalysis;
-		const patternCounts = new Map();
+		const strict = result.strictAudit;
+		const patternCounts = strict ? strict.patternCounts : new Map();
 		const columns = new Map();
-		const samples = [];
-		for (const changedRow of result.changedRows) {
+		const samples = strict ? strict.samples.slice() : [];
+		if (strict) {
+			for (const pair of result.mapping.common) {
+				const count = strict.columnCounts.get(pair.id) || 0;
+				if (count) columns.set(pair.id, { name: pair.label, count, patterns: strict.columnPatterns.get(pair.id) || new Map() });
+			}
+		} else for (const changedRow of result.changedRows) {
 			for (const change of changedRow.changes) {
 				const pattern = classifyParityMismatch(change.valueA, change.valueB);
 				patternCounts.set(pattern, (patternCounts.get(pattern) || 0) + 1);
@@ -1820,22 +2543,199 @@
 				if (samples.length < 6) samples.push({ key: change.key, column: change.column, mysql: change.valueB, starrocks: change.valueA, pattern });
 			}
 		}
-		const patterns = Array.from(patternCounts, ([name, count]) => ({ name, count })).sort((left, right) => right.count - left.count);
 		const topColumns = Array.from(columns.values()).map(column => ({
 			...column,
 			dominantPattern: Array.from(column.patterns, ([name, count]) => ({ name, count })).sort((left, right) => right.count - left.count)[0]?.name || "-"
 		})).sort((left, right) => right.count - left.count);
+		const patterns = Array.from(patternCounts, ([name, count]) => ({
+			name,
+			count,
+			affectedColumns: topColumns.filter(column => column.patterns.has(name)).map(column => ({ name: column.name, count: column.patterns.get(name) || 0 })).sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
+		})).sort((left, right) => right.count - left.count || left.name.localeCompare(right.name));
 		const dominant = patterns[0] || { name: "No value mismatch", count: 0 };
 		const formattingCount = patterns.filter(item => item.name !== "Value divergence").reduce((sum, item) => sum + item.count, 0);
+		const mismatchTotal = strict ? strict.mismatchedCells : result.changedCellCount;
 		let rootCause;
-		if (!result.changedCellCount && !result.onlyB.length && !result.onlyA.length) rootCause = "Full parity - no row-level or value-level difference detected";
+		if (strict && strict.contentReady) rootCause = "Parsed content is byte-ready; only final file serialization can still differ";
+		else if (!mismatchTotal && !result.onlyB.length && !result.onlyA.length) rootCause = "Full parsed-value parity - no row-level or value-level difference detected";
 		else if (result.onlyB.length) rootCause = "Completeness gap - MySQL source rows are missing from StarRocks";
-		else if (formattingCount > result.changedCellCount * .6) rootCause = `Formatting drift - ${dominant.name.toLowerCase()} is the dominant mismatch pattern`;
-		else if (result.mapping.onlyB.length || result.mapping.onlyA.length) rootCause = "Schema drift between the MySQL and StarRocks exports";
+		else if (result.onlyA.length) rootCause = "Filter/join drift - StarRocks contains rows absent from MySQL";
+		else if ((strict && strict.headerMismatches) || result.mapping.onlyB.length || result.mapping.onlyA.length) rootCause = "Schema or column-order drift between the exports";
+		else if (formattingCount > mismatchTotal * .6) rootCause = `Formatting drift - ${dominant.name.toLowerCase()} is the dominant mismatch pattern`;
+		else if (strict && strict.rowOrderMismatches && !mismatchTotal) rootCause = "Row-order drift - values match but export ordering differs";
 		else rootCause = "Value-level divergence across matched primary keys";
-		const recommendation = parityRecommendation(result, dominant.name);
-		result.pdfAnalysis = { patterns, topColumns, samples, dominant, formattingCount, rootCause, recommendation };
+		result.pdfAnalysis = { patterns, topColumns, samples, dominant, formattingCount, mismatchTotal, rootCause };
 		return result.pdfAnalysis;
+	}
+
+	const ISSUE_SEVERITY_ORDER = { Critical: 0, Major: 1, Minor: 2, Info: 3 };
+
+	function visibleIssueValue(value) {
+		if (value === null) return "NULL";
+		if (value === undefined) return "undefined";
+		return JSON.stringify(String(value));
+	}
+
+	function compactIssueValue(value, maximum = 24) {
+		const text = visibleIssueValue(value);
+		return text.length <= maximum ? text : `${text.slice(0, Math.max(1, maximum - 3))}...`;
+	}
+
+	function delimiterLabel(delimiter) {
+		return ({ ",": "comma", "\t": "tab", ";": "semicolon", "|": "pipe" })[delimiter] || delimiter || "n/a";
+	}
+
+	function sourceSignature(report) {
+		if (!report || !report.source) return "unknown";
+		if (report.source.kind !== "matrix") return `workbook / sheet ${report.sheetName}`;
+		return `${delimiterLabel(report.source.delimiter)} / ${report.source.newline || "unknown"} / ${report.source.bom ? "BOM" : "no BOM"}`;
+	}
+
+	function patternSeverity(pattern) {
+		if (pattern === "Value divergence") return "Critical";
+		if (["Numeric formatting", "Leading zero padding", "Boolean encoding", "Date/time formatting", "NULL representation"].includes(pattern)) return "Major";
+		return "Minor";
+	}
+
+	function compactIssueList(items, valueFor, maximum = 4) {
+		const values = items.map(valueFor).filter(Boolean);
+		if (!values.length) return "-";
+		const shown = values.slice(0, maximum);
+		return `${shown.join(", ")}${values.length > shown.length ? ` +${fmt(values.length - shown.length)} more` : ""}`;
+	}
+
+	function affectedColumnScope(pattern) {
+		const columns = pattern.affectedColumns || [];
+		if (!columns.length) return "Raw values";
+		const coverage = compactIssueList(columns, column => `${column.name}(${fmt(column.count)})`, 3);
+		return `${fmt(columns.length)} column${columns.length === 1 ? "" : "s"}: ${coverage}`;
+	}
+
+	function buildParityIssues(result, analysis = analyzeParity(result), byteAudit = null) {
+		const strict = result.strictAudit;
+		const issues = [];
+		const add = (severity, category, count, scope, example, metadata = {}) => {
+			if (!count) return;
+			issues.push({ severity, category, count, scope: scope || "-", example: example || "-", ...metadata });
+		};
+		if (byteAudit && byteAudit.checked && !byteAudit.identical) add(strict?.contentReady ? "Minor" : "Critical", "Exact file bytes differ", 1, "Whole export", byteAudit.reason, { kind: "byte" });
+
+		const serializationDifferences = [];
+		if (state.A.source?.kind !== state.B.source?.kind) serializationDifferences.push("container");
+		if (state.A.source?.kind === "matrix" && state.B.source?.kind === "matrix") {
+			if (state.A.source.delimiter !== state.B.source.delimiter) serializationDifferences.push("delimiter");
+			if (state.A.source.newline !== state.B.source.newline) serializationDifferences.push("line endings");
+			if (state.A.source.bom !== state.B.source.bom) serializationDifferences.push("BOM");
+		}
+		add("Minor", "Serialization metadata", serializationDifferences.length, serializationDifferences.join(", "), `MySQL=${sourceSignature(state.B)} | StarRocks=${sourceSignature(state.A)}`, { kind: "serialization" });
+		const structureDifferences = Number(state.A.sheetName !== state.B.sheetName) + Number(state.A.headerIndex !== state.B.headerIndex);
+		add("Minor", "Sheet/header position", structureDifferences, "Workbook structure", `MySQL sheet=${state.B.sheetName}, header=${state.B.headerIndex + 1} | StarRocks sheet=${state.A.sheetName}, header=${state.A.headerIndex + 1}`, { kind: "sheet-header" });
+
+		const rowDelta = state.A.rows.length - state.B.rows.length;
+		add("Critical", "Data row-count mismatch", Math.abs(rowDelta), "Row set", `MySQL=${fmt(state.B.rows.length)} | StarRocks=${fmt(state.A.rows.length)} | delta=${rowDelta}`, { kind: "row-count" });
+		add("Critical", "MySQL rows missing in StarRocks", result.onlyB.length, "Primary-key row set", `MySQL row ${fmt(result.onlyB[0]?.row?.rowNumber || 0)} / PK ${result.onlyB[0]?.key || "-"} | StarRocks=MISSING`, { kind: "missing-in-starrocks" });
+		add("Major", "Unexpected StarRocks rows", result.onlyA.length, "Primary-key row set", `StarRocks row ${fmt(result.onlyA[0]?.row?.rowNumber || 0)} / PK ${result.onlyA[0]?.key || "-"} | MySQL=ABSENT`, { kind: "extra-in-starrocks" });
+		const orderSample = strict?.rowOrderSample;
+		add("Minor", "Matched rows in different order", strict?.rowOrderMismatches || 0, "Export order", orderSample ? `MySQL row ${fmt(orderSample.mysqlRow)} | StarRocks row ${fmt(orderSample.starrocksRow)} | PK ${orderSample.key}` : `Detected among ${fmt(result.matchedRowCount)} matched rows`, { kind: "row-order" });
+
+		add("Critical", "MySQL-only columns", result.mapping.onlyB.length, "Schema", compactIssueList(result.mapping.onlyB, column => column.label), { kind: "missing-columns" });
+		add("Major", "StarRocks-only columns", result.mapping.onlyA.length, "Schema", compactIssueList(result.mapping.onlyA, column => column.label), { kind: "extra-columns" });
+		const headerSample = strict?.headerSamples?.[0];
+		add("Major", "Exact header/order mismatch", strict?.headerMismatches || 0, "Schema order", headerSample ? `MySQL=${compactIssueValue(headerSample.mysql)} | StarRocks=${compactIssueValue(headerSample.starrocks)} | position ${headerSample.position}` : "Header sequence differs", { kind: "header-order" });
+		const headerFlags = state.A.headerIssues.blank.length + state.A.headerIssues.duplicates.length + state.B.headerIssues.blank.length + state.B.headerIssues.duplicates.length;
+		add("Major", "Blank or duplicate headers", headerFlags, "Header integrity", `MySQL=${state.B.headerIssues.blank.length} blank/${state.B.headerIssues.duplicates.length} duplicate | StarRocks=${state.A.headerIssues.blank.length} blank/${state.A.headerIssues.duplicates.length} duplicate`, { kind: "header-integrity" });
+
+		const duplicateGroups = result.quality.duplicateGroupsA.length + result.quality.duplicateGroupsB.length;
+		const duplicateExample = result.quality.duplicateGroupsB[0] || result.quality.duplicateGroupsA[0];
+		add("Major", "Duplicate primary-key groups", duplicateGroups, "Key integrity", duplicateExample ? `PK ${duplicateExample.key} occurs ${duplicateExample.entries.length} times` : "-", { kind: "duplicate-keys" });
+		const nullKeys = result.quality.blankKeysA.length + result.quality.blankKeysB.length;
+		add("Major", "Null primary keys", nullKeys, "Key integrity", `MySQL=${result.quality.blankKeysB.length} | StarRocks=${result.quality.blankKeysA.length}`, { kind: "null-keys" });
+
+		for (const pattern of analysis.patterns) {
+			const sample = strict?.sampleByPattern?.get(pattern.name) || analysis.samples.find(item => item.pattern === pattern.name);
+			const example = sample ? `MySQL=${compactIssueValue(sample.mysql, 20)} | StarRocks=${compactIssueValue(sample.starrocks, 20)} | PK ${compactIssueValue(sample.key, 16)}` : "Representative value unavailable";
+			add(patternSeverity(pattern.name), pattern.name, pattern.count, affectedColumnScope(pattern), example, { kind: "value-pattern", pattern: pattern.name });
+		}
+		if (!issues.length) issues.push({ severity: "Info", category: "No parity issues detected", count: 0, scope: "All checked gates", example: byteAudit?.identical ? byteAudit.reason : "Rows, schema, order, and strict raw values match", kind: "no-issues" });
+		return issues.sort((left, right) => ISSUE_SEVERITY_ORDER[left.severity] - ISSUE_SEVERITY_ORDER[right.severity] || right.count - left.count || left.category.localeCompare(right.category));
+	}
+
+	function validateParityIssues(result, analysis, issues, byteAudit = null) {
+		if (!Array.isArray(issues) || !issues.length) throw new Error("The parity issue ledger is empty or invalid.");
+		let previousSeverity = -1;
+		for (const issue of issues) {
+			const severityRank = ISSUE_SEVERITY_ORDER[issue.severity];
+			if (!Number.isInteger(severityRank)) throw new Error(`Unknown issue severity: ${issue.severity}`);
+			if (severityRank < previousSeverity) throw new Error("The parity issue ledger is not severity ordered.");
+			previousSeverity = severityRank;
+			if (!Number.isFinite(issue.count) || issue.count < 0) throw new Error(`Invalid issue count for ${issue.category}.`);
+			if (!String(issue.example || "").trim()) throw new Error(`Missing evidence for ${issue.category}.`);
+		}
+		const strictMismatchCount = result.strictAudit ? result.strictAudit.mismatchedCells : result.changedCellCount;
+		const classifiedMismatchCount = issues.filter(issue => issue.kind === "value-pattern").reduce((sum, issue) => sum + issue.count, 0);
+		if (classifiedMismatchCount !== strictMismatchCount) throw new Error(`Parity ledger coverage failed: classified ${fmt(classifiedMismatchCount)} of ${fmt(strictMismatchCount)} raw cell differences.`);
+		for (const pattern of analysis.patterns) {
+			const matches = issues.filter(issue => issue.kind === "value-pattern" && issue.pattern === pattern.name);
+			if (matches.length !== 1 || matches[0].count !== pattern.count) throw new Error(`Parity ledger coverage failed for ${pattern.name}.`);
+		}
+		const expected = [
+			["row-count", Math.abs(state.A.rows.length - state.B.rows.length)],
+			["missing-in-starrocks", result.onlyB.length],
+			["extra-in-starrocks", result.onlyA.length],
+			["missing-columns", result.mapping.onlyB.length],
+			["extra-columns", result.mapping.onlyA.length],
+			["header-order", result.strictAudit?.headerMismatches || 0],
+			["row-order", result.strictAudit?.rowOrderMismatches || 0]
+		];
+		for (const [kind, count] of expected) {
+			const found = issues.find(issue => issue.kind === kind);
+			if ((count > 0 && (!found || found.count !== count)) || (!count && found)) throw new Error(`Parity ledger structural coverage failed for ${kind}.`);
+		}
+		if (byteAudit?.checked && !byteAudit.identical && !issues.some(issue => issue.kind === "byte")) throw new Error("Exact-byte difference was not included in the parity ledger.");
+		return {
+			classifiedMismatchCount,
+			strictMismatchCount,
+			categoryCount: issues.filter(issue => issue.severity !== "Info").length,
+			severityCounts: issueSeverityCounts(issues)
+		};
+	}
+
+	function issueSeverityCounts(issues) {
+		return issues.reduce((counts, issue) => { counts[issue.severity] = (counts[issue.severity] || 0) + 1; return counts; }, { Critical: 0, Major: 0, Minor: 0, Info: 0 });
+	}
+
+	async function compareFilesByteForByte(starrocksReport, mysqlReport, onProgress = () => {}) {
+		const starrocksFile = starrocksReport && starrocksReport.file;
+		const mysqlFile = mysqlReport && mysqlReport.file;
+		if (!starrocksFile || !mysqlFile || typeof starrocksFile.slice !== "function" || typeof mysqlFile.slice !== "function") return { checked: false, identical: null, reason: "In-memory/demo source - raw file bytes unavailable", firstDifference: null, bytesCompared: 0 };
+		if (starrocksFile.size !== mysqlFile.size) return { checked: true, identical: false, reason: `File size differs by ${formatBytes(Math.abs(starrocksFile.size - mysqlFile.size))}`, firstDifference: null, bytesCompared: 0 };
+		const chunkSize = 4 * 1024 * 1024;
+		const total = starrocksFile.size;
+		for (let offset = 0; offset < total; offset += chunkSize) {
+			const end = Math.min(total, offset + chunkSize);
+			const [bufferA, bufferB] = await Promise.all([starrocksFile.slice(offset, end).arrayBuffer(), mysqlFile.slice(offset, end).arrayBuffer()]);
+			const bytesA = new Uint8Array(bufferA);
+			const bytesB = new Uint8Array(bufferB);
+			const wordLength = Math.floor(bytesA.length / 4);
+			const wordsA = new Uint32Array(bufferA, 0, wordLength);
+			const wordsB = new Uint32Array(bufferB, 0, wordLength);
+			for (let word = 0; word < wordLength; word++) if (wordsA[word] !== wordsB[word]) {
+				const start = word * 4;
+				for (let byte = start; byte < start + 4; byte++) if (bytesA[byte] !== bytesB[byte]) {
+					const starrocksHex = `0x${bytesA[byte].toString(16).padStart(2, "0").toUpperCase()}`;
+					const mysqlHex = `0x${bytesB[byte].toString(16).padStart(2, "0").toUpperCase()}`;
+					return { checked: true, identical: false, reason: `First byte diff at ${fmt(offset + byte)}: MySQL ${mysqlHex} / StarRocks ${starrocksHex}`, firstDifference: offset + byte, mysqlByte: bytesB[byte], starrocksByte: bytesA[byte], bytesCompared: offset + byte };
+				}
+			}
+			for (let byte = wordLength * 4; byte < bytesA.length; byte++) if (bytesA[byte] !== bytesB[byte]) {
+				const starrocksHex = `0x${bytesA[byte].toString(16).padStart(2, "0").toUpperCase()}`;
+				const mysqlHex = `0x${bytesB[byte].toString(16).padStart(2, "0").toUpperCase()}`;
+				return { checked: true, identical: false, reason: `First byte diff at ${fmt(offset + byte)}: MySQL ${mysqlHex} / StarRocks ${starrocksHex}`, firstDifference: offset + byte, mysqlByte: bytesB[byte], starrocksByte: bytesA[byte], bytesCompared: offset + byte };
+			}
+			onProgress(total ? end / total : 1);
+			if ((offset / chunkSize) % 8 === 7) await new Promise(resolve => setTimeout(resolve, 0));
+		}
+		return { checked: true, identical: true, reason: `All ${formatBytes(total)} are identical`, firstDifference: null, bytesCompared: total };
 	}
 
 	function pdfSafe(value) {
@@ -1856,13 +2756,16 @@
 
 	function drawPdfTable(doc, x, y, widths, headers, rows, rowHeight = 7.2) {
 		const totalWidth = widths.reduce((sum, width) => sum + width, 0);
+		const headerFontSize = Math.min(6.5, Math.max(4.2, rowHeight * .84));
+		const bodyFontSize = Math.min(6.3, Math.max(4, rowHeight * .8));
+		const baselineOffset = rowHeight * .69;
 		doc.setFillColor(31, 38, 54);
-		doc.roundedRect(x, y, totalWidth, rowHeight, 1.2, 1.2, "F");
+		doc.roundedRect(x, y, totalWidth, rowHeight, Math.min(1.2, rowHeight / 5), Math.min(1.2, rowHeight / 5), "F");
 		doc.setFont("helvetica", "bold");
-		doc.setFontSize(6.5);
+		doc.setFontSize(headerFontSize);
 		doc.setTextColor(209, 216, 230);
 		let cursor = x;
-		headers.forEach((header, index) => { doc.text(clipPdfText(doc, header, widths[index] - 4), cursor + 2, y + 4.7); cursor += widths[index]; });
+		headers.forEach((header, index) => { doc.text(clipPdfText(doc, header, widths[index] - 3), cursor + 1.5, y + baselineOffset); cursor += widths[index]; });
 		rows.forEach((row, rowIndex) => {
 			const top = y + rowHeight * (rowIndex + 1);
 			doc.setFillColor(...(rowIndex % 2 ? [248, 249, 252] : [241, 244, 249]));
@@ -1870,10 +2773,10 @@
 			doc.setDrawColor(220, 225, 234);
 			doc.line(x, top + rowHeight, x + totalWidth, top + rowHeight);
 			doc.setFont("helvetica", "normal");
-			doc.setFontSize(6.3);
+			doc.setFontSize(bodyFontSize);
 			doc.setTextColor(42, 49, 64);
 			cursor = x;
-			row.forEach((cell, index) => { doc.text(clipPdfText(doc, cell, widths[index] - 4), cursor + 2, top + 4.7); cursor += widths[index]; });
+			row.forEach((cell, index) => { doc.text(clipPdfText(doc, cell, widths[index] - 3), cursor + 1.5, top + baselineOffset); cursor += widths[index]; });
 		});
 		return y + rowHeight * (rows.length + 1);
 	}
@@ -1888,105 +2791,95 @@
 		button.textContent = "Generating one-page PDF...";
 		await new Promise(resolve => setTimeout(resolve, 20));
 		try {
+			button.textContent = "Comparing raw file bytes...";
+			const byteAudit = await compareFilesByteForByte(state.A, state.B, progress => {
+				button.textContent = `Comparing raw bytes ${Math.round(progress * 100)}%...`;
+			});
+			button.textContent = "Building parity PDF...";
 			const { jsPDF } = window.jspdf;
 			const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
 			const reportName = currentReportName();
 			const analysis = analyzeParity(result);
+			const strict = result.strictAudit || { comparedCells: result.matchedRowCount * result.comparePairs.length, mismatchedCells: result.changedCellCount, mismatchedRows: result.changedRows.length, rowOrderMismatches: 0, headerMismatches: result.mapping.onlyA.length + result.mapping.onlyB.length, cellParity: result.cellAccuracy, contentReady: false };
 			const generatedAt = new Date();
 			const pageWidth = 297;
 			const mysqlRows = state.B.rows.length;
 			const starrocksRows = state.A.rows.length;
 			const rowDifference = starrocksRows - mysqlRows;
 			const schemaDifference = result.mapping.onlyA.length + result.mapping.onlyB.length;
-			const fullParity = !result.changedCellCount && !result.onlyA.length && !result.onlyB.length && !schemaDifference;
-			const status = fullParity ? "PASS - FULL PARITY" : result.onlyB.length || result.score < 95 ? "FAIL - PARITY GAP" : "REVIEW - DIFFERENCES FOUND";
-			const statusColor = fullParity ? [29, 150, 102] : result.onlyB.length || result.score < 95 ? [202, 70, 83] : [181, 119, 12];
+			const exactParity = byteAudit.checked && byteAudit.identical;
+			const contentParity = strict.contentReady && !schemaDifference;
+			const issues = buildParityIssues(result, analysis, byteAudit);
+			const ledgerAudit = validateParityIssues(result, analysis, issues, byteAudit);
+			const severityCounts = ledgerAudit.severityCounts;
+			const issueCategoryCount = ledgerAudit.categoryCount;
+			const status = exactParity ? "PASS - EXACT BYTE PARITY" : contentParity ? byteAudit.checked ? "CONTENT MATCH - FILE BYTES DIFFER" : "PASS - PARSED CONTENT PARITY" : "FAIL - PARITY DIFFERENCES";
+			const statusColor = exactParity ? [29, 150, 102] : contentParity ? [181, 119, 12] : [202, 70, 83];
 			doc.setProperties({ title: `${pdfSafe(reportName)} - Parity Difference`, subject: "MySQL source-of-truth parity validation against StarRocks", author: "SR MySQL Recon" });
 			doc.setFillColor(10, 14, 24);
-			doc.rect(0, 0, pageWidth, 37, "F");
+			doc.rect(0, 0, pageWidth, 34, "F");
 			doc.setTextColor(138, 150, 255);
 			doc.setFont("helvetica", "bold");
 			doc.setFontSize(7.5);
-			doc.text("PARITY DIFFERENCE / ONE-PAGE ENGINEERING SUMMARY", 12, 10);
+			doc.text("MYSQL -> STARROCKS / STRICT PARITY REPORT", 12, 9);
 			doc.setTextColor(247, 248, 252);
-			doc.setFontSize(20);
-			doc.text(clipPdfText(doc, reportName, 210), 12, 22);
+			doc.setFontSize(18);
+			doc.text(clipPdfText(doc, reportName, 205), 12, 20);
 			doc.setFont("helvetica", "normal");
-			doc.setFontSize(8);
+			doc.setFontSize(7.2);
 			doc.setTextColor(164, 174, 192);
-			doc.text("MySQL source of truth -> StarRocks parity validation", 12, 30);
-			doc.text(`Generated ${generatedAt.toISOString().replace("T", " ").slice(0, 19)} UTC`, 221, 10);
+			doc.text("MySQL source of truth | Exact bytes, schema/order, rows, and strict raw values", 12, 28);
+			doc.text(`Generated ${generatedAt.toISOString().replace("T", " ").slice(0, 19)} UTC`, 285, 9, { align: "right" });
 
 			const sourceCard = (x, label, file, rows, color) => {
 				doc.setFillColor(...color);
-				doc.roundedRect(x, 41, 132, 17, 2, 2, "F");
-				doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(255, 255, 255); doc.text(label, x + 4, 47);
-				doc.setFont("helvetica", "normal"); doc.setFontSize(6.8); doc.text(clipPdfText(doc, file, 94), x + 4, 53);
-				doc.setFont("helvetica", "bold"); doc.text(`${fmt(rows)} rows`, x + 108, 53, { align: "right" });
+				doc.roundedRect(x, 38, 132, 16, 2, 2, "F");
+				doc.setFont("helvetica", "bold"); doc.setFontSize(6.7); doc.setTextColor(255, 255, 255); doc.text(label, x + 4, 44);
+				doc.setFont("helvetica", "normal"); doc.setFontSize(6.3); doc.text(clipPdfText(doc, file, 88), x + 4, 50);
+				doc.setFont("helvetica", "bold"); doc.text(`${fmt(rows)} rows | ${formatBytes(label.startsWith("MYSQL") ? state.B.size : state.A.size)}`, x + 128, 50, { align: "right" });
 			};
 			sourceCard(12, "MYSQL / SOURCE OF TRUTH", state.B.fileName, mysqlRows, [40, 126, 192]);
 			sourceCard(153, "STARROCKS / OBSERVED", state.A.fileName, starrocksRows, [93, 104, 232]);
 
 			doc.setFillColor(...statusColor);
-			doc.roundedRect(12, 63, 273, 14, 2, 2, "F");
-			doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.text(status, 17, 72);
-			doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.text(clipPdfText(doc, analysis.rootCause, 192), 92, 72);
+			doc.roundedRect(12, 59, 273, 13, 2, 2, "F");
+			doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(8.4); doc.text(status, 17, 67.5);
+			doc.setFont("helvetica", "normal"); doc.setFontSize(6.8); doc.text(clipPdfText(doc, exactParity ? byteAudit.reason : contentParity && byteAudit.checked ? byteAudit.reason : analysis.rootCause, 190), 94, 67.5);
 
 			const cards = [
-				["CONSISTENCY", `${result.score}%`],
-				["CELL PARITY", result.cellAccuracy === null ? "N/A" : `${result.cellAccuracy}%`],
-				["MISSING IN STARROCKS", fmt(result.onlyB.length)],
-				["MISMATCHED CELLS", fmt(result.changedCellCount)]
+				["EXACT FILE BYTES", byteAudit.checked ? byteAudit.identical ? "MATCH" : "DIFF" : "N/A"],
+				["STRICT RAW-CELL PARITY", strict.cellParity === null ? "N/A" : `${strict.cellParity}%`],
+				["MYSQL KEYS MISSING IN SR", fmt(result.onlyB.length)],
+				["DYNAMIC ISSUES C/M/m", `${severityCounts.Critical}/${severityCounts.Major}/${severityCounts.Minor}`]
 			];
 			cards.forEach(([label, value], index) => {
 				const x = 12 + index * 69.5;
-				doc.setFillColor(244, 246, 250); doc.setDrawColor(220, 225, 234); doc.roundedRect(x, 82, 64, 18, 2, 2, "FD");
-				doc.setTextColor(103, 112, 130); doc.setFont("helvetica", "bold"); doc.setFontSize(5.8); doc.text(label, x + 4, 88);
-				doc.setTextColor(28, 34, 46); doc.setFontSize(12); doc.text(value, x + 4, 96);
+				doc.setFillColor(244, 246, 250); doc.setDrawColor(220, 225, 234); doc.roundedRect(x, 77, 64, 17, 2, 2, "FD");
+				doc.setTextColor(103, 112, 130); doc.setFont("helvetica", "bold"); doc.setFontSize(5.4); doc.text(label, x + 4, 83);
+				doc.setTextColor(28, 34, 46); doc.setFontSize(11); doc.text(value, x + 4, 91);
 			});
 
-			doc.setTextColor(31, 38, 54); doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.text("PARITY CHECK", 12, 109);
-			const parityRows = [
-				["Total rows", fmt(mysqlRows), fmt(starrocksRows), String(rowDifference), rowDifference === 0 ? "Match" : "Mismatch"],
-				["Matched primary keys", fmt(result.matchedRowCount), fmt(result.matchedRowCount), "0", "Aligned"],
-				["Rows missing in StarRocks", fmt(result.onlyB.length), "0", String(-result.onlyB.length), result.onlyB.length ? "Gap" : "None"],
-				["Unexpected StarRocks rows", "0", fmt(result.onlyA.length), String(result.onlyA.length), result.onlyA.length ? "Extra" : "None"],
-				["Mapped / drift columns", fmt(result.mapping.common.length), fmt(result.mapping.common.length), String(schemaDifference), schemaDifference ? "Review" : "Aligned"]
-			];
-			drawPdfTable(doc, 12, 113, [42, 24, 25, 18, 23], ["Metric", "MySQL", "StarRocks", "Delta", "Result"], parityRows);
+			doc.setTextColor(31, 38, 54); doc.setFont("helvetica", "bold"); doc.setFontSize(7.2); doc.text("PARITY SNAPSHOT", 12, 101.5);
+			doc.setFillColor(246, 248, 252); doc.setDrawColor(220, 225, 234); doc.roundedRect(12, 105, 273, 13, 2, 2, "FD");
+			doc.setFont("helvetica", "normal"); doc.setFontSize(5.7); doc.setTextColor(69, 77, 94);
+			const snapshotOne = `Rows MY/SR ${fmt(mysqlRows)}/${fmt(starrocksRows)} (delta ${rowDifference}) | matched ${fmt(result.matchedRowCount)} | missing ${fmt(result.onlyB.length)} | extra ${fmt(result.onlyA.length)} | columns MY/SR ${fmt(state.B.columns.length)}/${fmt(state.A.columns.length)}`;
+			const snapshotTwo = `Raw cells ${fmt(strict.comparedCells)} | raw diffs ${fmt(strict.mismatchedCells)} | reordered rows ${fmt(strict.rowOrderMismatches)} | header/order diffs ${fmt(strict.headerMismatches)} | MY ${sourceSignature(state.B)} | SR ${sourceSignature(state.A)}`;
+			doc.text(clipPdfText(doc, snapshotOne, 265), 16, 110.5);
+			doc.text(clipPdfText(doc, snapshotTwo, 265), 16, 115);
 
-			doc.setTextColor(31, 38, 54); doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.text("TOP DIFFERENCE FIELDS", 153, 109);
-			const topRows = analysis.topColumns.slice(0, 5).map(column => [
-				column.name,
-				fmt(column.count),
-				result.changedCellCount ? `${Math.round(column.count / result.changedCellCount * 100)}%` : "0%",
-				column.dominantPattern
-			]);
-			while (topRows.length < 5) topRows.push([topRows.length ? "-" : "No mismatched fields", "0", "0%", "-"]);
-			drawPdfTable(doc, 153, 113, [49, 19, 16, 50], ["Field", "Cells", "Share", "Likely pattern"], topRows);
-
-			doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(31, 38, 54); doc.text("ROOT-CAUSE SUMMARY", 12, 164);
-			doc.setFillColor(246, 248, 252); doc.setDrawColor(220, 225, 234); doc.roundedRect(12, 168, 132, 27, 2, 2, "FD");
-			doc.setFontSize(7); doc.setTextColor(...statusColor); doc.text(clipPdfText(doc, analysis.rootCause, 124), 16, 175);
-			doc.setFont("helvetica", "normal"); doc.setTextColor(69, 77, 94); doc.setFontSize(6.3);
-			const rootDetails = [
-				`Format-classified differences: ${fmt(analysis.formattingCount)} of ${fmt(result.changedCellCount)} cells.`,
-				`MySQL-only keys: ${fmt(result.onlyB.length)} | StarRocks-only keys: ${fmt(result.onlyA.length)}.`,
-				fullParity ? "Conclusion: StarRocks matches the MySQL source of truth." : `Action: ${analysis.recommendation}`
-			];
-			rootDetails.forEach((line, index) => doc.text(clipPdfText(doc, line, 124), 16, 181 + index * 4.2));
-
-			doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(31, 38, 54); doc.text("EVIDENCE & DEVELOPER ACTION", 153, 164);
-			doc.setFillColor(246, 248, 252); doc.setDrawColor(220, 225, 234); doc.roundedRect(153, 168, 132, 27, 2, 2, "FD");
-			doc.setFont("helvetica", "normal"); doc.setTextColor(69, 77, 94); doc.setFontSize(6.2);
-			const evidence = analysis.samples.slice(0, 2).map(sample => `${sample.column}: MySQL="${sample.mysql}" | StarRocks="${sample.starrocks}" (${sample.pattern})`);
-			if (!evidence.length) evidence.push("No mismatched value sample - all compared cells are consistent.");
-			evidence.push(`Schema drift: ${fmt(result.mapping.onlyB.length)} MySQL-only / ${fmt(result.mapping.onlyA.length)} StarRocks-only columns.`);
-			evidence.slice(0, 3).forEach((line, index) => doc.text(clipPdfText(doc, line, 124), 157, 175 + index * 5));
+			doc.setFont("helvetica", "bold"); doc.setFontSize(7.2); doc.setTextColor(31, 38, 54); doc.text(`COMPLETE DYNAMIC LEDGER / ${fmt(issueCategoryCount)} CATEGORIES / CRITICAL > MAJOR > MINOR`, 12, 124);
+			const splitAt = Math.ceil(issues.length / 2);
+			const issueColumns = [issues.slice(0, splitAt), issues.slice(splitAt)];
+			const maximumLedgerRows = Math.max(1, ...issueColumns.map(items => items.length));
+			const issueRowHeight = Math.min(5.35, Math.max(3.8, 67 / (maximumLedgerRows + 1)));
+			const severityLabel = severity => ({ Critical: "CRIT", Major: "MAJOR", Minor: "MINOR", Info: "INFO" })[severity] || severity;
+			const issueRows = items => items.map(issue => [severityLabel(issue.severity), issue.category, fmt(issue.count), `${issue.scope} | ${issue.example}`]);
+			drawPdfTable(doc, 12, 128, [15, 40, 14, 63], ["Severity", "StarRocks difference", "Count", "MySQL evidence / affected scope"], issueRows(issueColumns[0]), issueRowHeight);
+			drawPdfTable(doc, 153, 128, [15, 39, 14, 64], ["Severity", "StarRocks difference", "Count", "MySQL evidence / affected scope"], issueRows(issueColumns[1]), issueRowHeight);
 
 			doc.setDrawColor(210, 216, 226); doc.line(12, 201, 285, 201);
 			doc.setFont("helvetica", "normal"); doc.setFontSize(5.8); doc.setTextColor(115, 124, 142);
-			doc.text("MySQL is the source of truth. StarRocks is evaluated against MySQL under the active normalization contract.", 12, 205);
+			doc.text(clipPdfText(doc, `MySQL source of truth | raw differences classified ${fmt(ledgerAudit.classifiedMismatchCount)}/${fmt(ledgerAudit.strictMismatchCount)} | ${fmt(issueCategoryCount)} categories | ${byteAudit.reason}`, 205), 12, 205);
 			doc.text("Parity Difference | Page 1 of 1", 285, 205, { align: "right" });
 			if (doc.getNumberOfPages() !== 1) throw new Error("The parity summary exceeded one page.");
 			doc.save("Parity Difference.pdf");
@@ -2019,6 +2912,42 @@
 		await downloadCsvRows(rows(), `${sourceFor(side).slug}-only-rows.csv`);
 	}
 
+	async function exportIssues(result) {
+		const issues = buildParityIssues(result);
+		function* rows() {
+			yield ["severity", "issue_category", "count", "scope", "representative_example"];
+			for (const issue of issues) yield [issue.severity, issue.category, issue.count, issue.scope, issue.example];
+		}
+		await downloadCsvRows(rows(), "starrocks-mysql-parity-issue-ledger.csv");
+	}
+
+	function developerBundle(result) {
+		return {
+			bundleVersion: 1,
+			generatedAt: new Date().toISOString(),
+			runId: runIdFor(result),
+			contract: comparisonContract(result),
+			summary: summaryObject(result),
+			columnProfiles: diagnosticRows(result).map(row => ({
+				starrocksColumn: row.pair.columnA.label,
+				mysqlColumn: row.pair.columnB.label,
+				starrocks: row.starrocks,
+				mysql: row.mysql,
+				status: row.status
+			})),
+			representativeMismatches: result.changedRows.slice(0, 100).flatMap(row => row.changes.slice(0, 10).map(change => ({ primaryKey: change.key, column: change.column, starrocks: change.valueA, mysql: change.valueB }))),
+			rowSetExamples: {
+				starrocksOnly: result.onlyA.slice(0, 25).map(item => ({ primaryKey: item.key, reason: item.reason, row: item.row.rowNumber })),
+				mysqlOnly: result.onlyB.slice(0, 25).map(item => ({ primaryKey: item.key, reason: item.reason, row: item.row.rowNumber }))
+			},
+			performance: { comparisonMilliseconds: Math.round(state.lastComputeMs * 100) / 100, combinedInputBytes: (state.A.size || 0) + (state.B.size || 0) }
+		};
+	}
+
+	function exportDeveloperBundle(result) {
+		downloadBlob(JSON.stringify(developerBundle(result), null, 2), "application/json", `${artifactBaseName()}-${runIdFor(result).toLowerCase()}-reproduction-bundle.json`);
+	}
+
 	function summaryObject(result) {
 		return {
 			generatedAt: new Date().toISOString(),
@@ -2027,7 +2956,8 @@
 			mysql: { file: state.B.fileName, sheet: state.B.sheetName, headerRow: state.B.headerIndex + 1, rows: state.B.rows.length, columns: state.B.columns.length },
 			matching: { mode: state.options.matchMode, key: result.keyPairs.map(pair => pair.label), headerMode: state.options.headerMode },
 			rules: { trimWhitespace: state.options.trimWhitespace, collapseWhitespace: state.options.collapseWhitespace, caseSensitive: state.options.caseSensitive, numericEquivalent: state.options.numericEquivalent, numericTolerance: state.options.numericTolerance, nullEquivalent: state.options.nullEquivalent, ignoredColumns: result.mapping.common.filter(pair => state.options.ignoredColumns.has(pair.id)).map(pair => pair.label) },
-			summary: { consistencyScore: result.score, keyCoverage: result.coverage, cellParity: result.cellAccuracy, matchedRows: result.matchedRowCount, consistentRows: result.perfectRows, mismatchedRows: result.changedRows.length, mismatchedCells: result.changedCellCount, starrocksOnly: result.onlyA.length, mysqlOnly: result.onlyB.length },
+			summary: { consistencyScore: result.score, keyCoverage: result.coverage, cellParity: result.cellAccuracy, normalizedCellParity: result.cellAccuracy, strictRawCellParity: result.strictAudit?.cellParity ?? null, matchedRows: result.matchedRowCount, consistentRows: result.perfectRows, mismatchedRows: result.changedRows.length, mismatchedCells: result.changedCellCount, normalizedMismatchedCells: result.changedCellCount, strictRawMismatchedCells: result.strictAudit?.mismatchedCells ?? result.changedCellCount, starrocksOnly: result.onlyA.length, mysqlOnly: result.onlyB.length },
+			issueLedger: buildParityIssues(result),
 			quality: { duplicatePrimaryKeyGroupsStarrocks: result.quality.duplicateGroupsA.length, duplicatePrimaryKeyGroupsMysql: result.quality.duplicateGroupsB.length, nullPrimaryKeysStarrocks: result.quality.blankKeysA.length, nullPrimaryKeysMysql: result.quality.blankKeysB.length }
 		};
 	}
@@ -2048,6 +2978,8 @@
 		else if (type === "filteredChanges") await exportChanges(result, true);
 		else if (type === "onlyA") await exportOnly(result, "A");
 		else if (type === "onlyB") await exportOnly(result, "B");
+		else if (type === "issues") await exportIssues(result);
+		else if (type === "bundle") exportDeveloperBundle(result);
 		else if (type === "json") exportJson(result);
 	}
 
@@ -2058,7 +2990,7 @@
 			`StarRocks: ${summary.starrocks.file} · ${fmt(summary.starrocks.rows)} rows`,
 			`MySQL: ${summary.mysql.file} · ${fmt(summary.mysql.rows)} rows`,
 			`Mode: ${summary.matching.mode}${summary.matching.key.length ? ` · key ${summary.matching.key.join(" + ")}` : ""}`,
-			`Consistent: ${fmt(summary.summary.consistentRows)} · Mismatched: ${fmt(summary.summary.mismatchedRows)} rows / ${fmt(summary.summary.mismatchedCells)} cells`,
+			`Consistent: ${fmt(summary.summary.consistentRows)} · Mismatched: ${fmt(summary.summary.mismatchedRows)} rows / ${fmt(summary.summary.normalizedMismatchedCells)} normalized cells / ${fmt(summary.summary.strictRawMismatchedCells)} strict cells`,
 			`StarRocks only: ${fmt(summary.summary.starrocksOnly)} · MySQL only: ${fmt(summary.summary.mysqlOnly)}`
 		].join("\n");
 	}
@@ -2161,11 +3093,45 @@
 		renderResults();
 	});
 	$("#keyDialog").addEventListener("click", event => { if (event.target === $("#keyDialog")) $("#keyDialog").close(); });
+	$("#closeShortcutDialog").addEventListener("click", () => $("#shortcutDialog").close());
+	$("#doneShortcutDialog").addEventListener("click", () => $("#shortcutDialog").close());
+	$("#shortcutDialog").addEventListener("click", event => { if (event.target === $("#shortcutDialog")) $("#shortcutDialog").close(); });
+	$("#commandBtn").addEventListener("click", openCommandPalette);
+	$("#commandDialog").addEventListener("click", event => { if (event.target === $("#commandDialog")) closeCommandPalette(); });
+	$("#commandInput").addEventListener("input", event => { state.commandQuery = event.target.value; state.commandIndex = 0; renderCommandPalette(); });
+	$("#commandInput").addEventListener("keydown", event => {
+		if (event.key === "ArrowDown") { event.preventDefault(); setCommandIndex(state.commandIndex + 1); }
+		else if (event.key === "ArrowUp") { event.preventDefault(); setCommandIndex(state.commandIndex - 1); }
+		else if (event.key === "Enter" && state.commandMatches[state.commandIndex]) { event.preventDefault(); executeCommand(state.commandMatches[state.commandIndex].id); }
+	});
+	$("#closeRowInspectorDialog").addEventListener("click", () => { state.rowInspectorRequest++; $("#rowInspectorDialog").close(); });
+	$("#doneRowInspectorDialog").addEventListener("click", () => { state.rowInspectorRequest++; $("#rowInspectorDialog").close(); });
+	$("#rowInspectorDialog").addEventListener("click", event => { if (event.target === $("#rowInspectorDialog")) { state.rowInspectorRequest++; $("#rowInspectorDialog").close(); } });
+	$("#runRowInspectorBtn").addEventListener("click", runRowInspector);
+	$("#rowInspectorInput").addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); runRowInspector(); } });
+	$("#copyInspectorSqlBtn").addEventListener("click", () => { if (state.rowInspectorSql) copyText(state.rowInspectorSql, "MySQL key predicate copied"); });
 	document.addEventListener("keydown", event => {
+		const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "");
+		if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); $("#commandDialog").open ? closeCommandPalette() : openCommandPalette(); return; }
+		if (event.key === "Escape") {
+			const openDialog = $("dialog[open]");
+			if (openDialog) { event.preventDefault(); if (openDialog.id === "rowInspectorDialog") state.rowInspectorRequest++; openDialog.close(); return; }
+			const openExport = $(".export-wrap[open]");
+			if (openExport) { event.preventDefault(); openExport.removeAttribute("open"); }
+			return;
+		}
+		if (typing) return;
+		const key = event.key.toLowerCase();
+		if (event.altKey && ["i", "d"].includes(key) && state.lastResult) {
+			event.preventDefault(); openResultTab(key === "i" ? "issues" : "diagnostics"); return;
+		}
+		if (event.altKey && key === "p" && $("#pdfReportBtn")) { event.preventDefault(); $("#pdfReportBtn").click(); return; }
+		if (event.altKey && key === "e" && state.lastResult) { event.preventDefault(); exportDeveloperBundle(state.lastResult); return; }
+		if (event.altKey && key === "r" && state.lastResult) { event.preventDefault(); openRowInspector(state.lastResult); return; }
+		if (event.key === "?" && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); $("#shortcutDialog").showModal(); return; }
 		if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey) return;
-		if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "")) return;
-		const search = $("#searchInput");
-		if (search) { event.preventDefault(); search.focus(); search.select(); }
+		event.preventDefault();
+		if (state.lastResult) openResultTab("changes", true);
 	});
 
 	initTheme();
